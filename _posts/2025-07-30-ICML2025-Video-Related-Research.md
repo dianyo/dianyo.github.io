@@ -134,7 +134,7 @@ Building on the observation, sliding window attention (SWA) is an ideal candidat
 <img src="https://dianyo.github.io//images/ICML2025_videogen/STA_sta.png" alt="STA algorithm">
 </div>
 
-Next, the authors propose an algorithm to search for the optimal window size for each head by averaging the mask-search loss across just 16 prompts using predefined pattern list. They kept full attention for the first \(T_0\) steps and then switch to STA for the rest of the denoising process. Besides, the authors also propose a learning method by fixing the window size and fine-tuning the model by attention distillation loss between STA and original full attention + finaly lyaer alignment loss + the data loss following the flow matching loss.
+Next, the authors propose an algorithm to search for the optimal window size for each head by averaging the mask-search loss across just 16 prompts using predefined pattern list. They kept full attention for the first \( T_0 \) steps and then switch to STA for the rest of the denoising process. Besides, the authors also propose a learning method by fixing the window size and fine-tuning the model by attention distillation loss between STA and original full attention + finaly lyaer alignment loss + the data loss following the flow matching loss.
 
 <div style="display: flex; justify-content: center; gap: 1rem; align-items: flex-start; flex-wrap: wrap;">
 
