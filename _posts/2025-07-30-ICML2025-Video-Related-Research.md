@@ -10,14 +10,17 @@ In this post, I'll quickly summarize the video generation related research that 
 ### Problem
 Existing block-sparse methods have struggled to deliver on their full potential of orginal models, often grappling with a trade-off between accuracy and efficiency, where the efficiency is also limited by importance score searching. **Can we design a block-sparse attention mechanism that dramatically accelerates longcontext Transformers without compromising accuracy, truly unlocking their potential for real-world applications?**
 
-[<img src="{{ site.baseurl }}/images/ICML2025_videogen/XAttn_search_compare.png" alt="XAttn_search_compare" style="width: 400px;"/>]({{ site.baseurl }}/)
-
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="{{ site.baseurl }}/images/ICML2025_videogen/XAttn_search_compare.png" alt="XAttn_search_compare">
+</div>
 
 ### Proposed Method
 The authors propose a new block-sparse attention mechanism, XAttention, that leverages antidiagonal scoring to achieve high accuracy while maintaining efficiency by their empirical observations though they didn't mention a lot of how they find this observation. Other than the block selection by a threshold, the authors also propose a dynamic threshold prediction method using dynamic programming to set the threshold for each block but which is not mandatory.
-| [<img src="{{ site.baseurl }}/images/ICML2025_videogen/XAttn_fig.png" alt="XAttention" style="width: 400px;"/>]({{ site.baseurl }}/)        | [<img src="{{ site.baseurl }}/images/ICML2025_videogen/XAttn_algo.png" alt="XAttention algorithm" style="width: 400px;"/>]({{ site.baseurl }}/) |
-|:-------------------------------------------------------------:|:-------------------------------------------:|
 
+<div style="text-align: center; width: 100%; margin: 0 auto;">
+<img src="{{ site.baseurl }}/images/ICML2025_videogen/XAttn_fig.png" alt="XAttention" style="width: 48%; display: inline-block;">
+<img src="{{ site.baseurl }}/images/ICML2025_videogen/XAttn_algo.png" alt="XAttention algorithm" style="width: 48%; display: inline-block;">
+</div>
 
 ### Experiments & Results
 
@@ -25,8 +28,13 @@ As the XAttention is focus on prefill stage of the Transformer, it can be applie
 
 Authors found that applying XAttention from the very beginning of the denoising process in the HunyuanVideo model led to slight layout shifts, that they decided to introduce a 5-step "warmup" stage as research shows early denoising steps are critical for determining content layout. The reults shows more than 50% sparsity can be achieved after applying XAttention, however they didn't provide the speedup numbers directly.
 
-[<img src="{{ site.baseurl }}/images/ICML25_videogen/XAttn_video_warmup.png" alt="XAttn_warmup" style="width: 400px;"/>]({{ site.baseurl }}/)
-[<img src="{{ site.baseurl }}/images/ICML25_videogen/XAttn_video_table.png" alt="XAttn_results" style="width: 400px;"/>]({{ site.baseurl }}/)
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="{{ site.baseurl }}/images/ICML2025_videogen/XAttn_video_warmup.png" alt="XAttn_warmup">
+</div>
+
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="{{ site.baseurl }}/images/ICML2025_videogen/XAttn_video_table.png" alt="XAttn_results">
+</div>
 
 
 
