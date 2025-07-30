@@ -38,6 +38,38 @@ Authors found that applying XAttention from the very beginning of the denoising 
 
 ## ConceptAttention: Diffusion Transformers Learn Highly Interpretable Features
 
+### Problem
+The understanding of the internal mechanisms of diffusion models is limited, and the decision-making process of diffusion models is not interpretable. The rapid advancement and enhanced capabilities of DiT-based models highlight the critical importance of methods that improve their interpretability, transparency, and safety.
 
+### Proposed Method
+ConceptAttention utilize the multi-modal attention layers (MMATTN) in DiT to generate high quality saliency maps that depict the location of the input textual concepts in generated images. The authors create a set of contextualized concept embeddings for textual concepts and use them alongside the original input image and text, the concept input will do cross-attention with the image and self-attention with itself cause the authors found that performing both instead of just cross-attention improves the donwstream tasks performance. The concept branch won't affect the orignal generation process. The high level idea is shown in the following figure
 
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_fig.png" alt="ConceptAttention">
+</div>
 
+The detail algorithm is composed by the following fomulas, where subscripts $x$ denotes image, $p$ denotes text input prompt, $c$ denotes concept input.
+
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula4.png" alt="ConceptAttention formula 4">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula5.png" alt="ConceptAttention formula 5">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula6.png" alt="ConceptAttention formula 6">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula7.png" alt="ConceptAttention formula 7">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula8.png" alt="ConceptAttention formula 8">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula9_10.png" alt="ConceptAttention formula 9 & 10">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula11.png" alt="ConceptAttention formula 11">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula_sum.png" alt="ConceptAttention formula final">
+</div>
+
+### Experiments & Results
+Most of the experiments are conducted on image generation task, but author shows in one case that ConceptAttention can also be applied to video generation task on CogVideoX, where they further average over the frame dimension to get the final saliency map.
+
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_video_result.png" alt="ConceptAttention video results">
+</div>
+
+The authors also provide a inspiring ablation study on how different the output concept various between diffusion steps and DiT layers. The layers is more intuitive that the deeper layers have more refined representation that better transfer to the segmentation task. However, for the diffusion steps, it's surprising that although the later timesteps is less noisy, the concpet output is the best at the middle of the diffusion process.
+
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_ablation.png" alt="ConceptAttention ablation">
+</div>
