@@ -50,7 +50,7 @@ ConceptAttention utilize the multi-modal attention layers (MMATTN) in DiT to gen
 
 The detail algorithm is composed by the following fomulas, where subscripts \( x \) denotes image, \( p \) denotes text input prompt, \( c \) denotes concept input.
 
-<div style="text-align: center; width: 100%; margin: 0 auto;">
+<div style="text-align: center; width: 60%; margin: 0 auto;">
 <img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula4.png" alt="ConceptAttention formula 4">
 <img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula5.png" alt="ConceptAttention formula 5">
 <img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula6.png" alt="ConceptAttention formula 6">
@@ -79,7 +79,7 @@ The authors also provide a inspiring ablation study on how different the output 
 ### Problem
 Video geneartion is computationally expensive, and due to the quadratic computational complexity with respect to context length, in video it's resolution and number of frames, the computational cost is even more expensive. (General video generation issue nowadays). **How to leverage the nature of attention sparsity that has been shown to be effective in language models to accelerate the video generation process?**
 
-### Proposed Method
+### Observation & Proposed Method
 The author observes two inherent sparsity attention patterns, spatial head sparsity and temporal head sparsity. The spatial head sparsity is caused by the model attention is more focused on the local region, while the temporal head sparsity is cuased by the model look at similar regions across frames. Besides, the authors also found that the text prompt and the first frame hold significant attention scores for both spatial and temporal head, so the include these tokens in both spatial and temporal head.
 
 <div style="text-align: center; width: 100%; margin: 0 auto;">
@@ -113,4 +113,54 @@ The experiments are conducted on models including CogVideoX-v1.5-I2V, CogVideoX-
 
 <div style="text-align: center; width: 100%; margin: 0 auto;">
 <img src="https://dianyo.github.io//images/ICML2025_videogen/SVG_exp_result.png" alt="SVG experiment results">
+</div>
+
+## Fast Video Generation with SLIDING TILE ATTENTION
+
+### Problem
+Same as the previous work, the video generation process is computationally expensive, and due to the quadratic computational complexity with respect to context length, in video it's resolution and number of frames, the computational cost is even more expensive. Authors want to use the inherently redundancy of video data - adjacent frames are highly correlated and spatially close pixels ten to have stronger relations - to hypothesize **treating every token independently in 3D attention may be unnecessarily expensive, and we can leverage the redundancy to reduce the computational cost**.
+
+### Observation & Proposed Method
+The author first observe that the query's attention forms a concentrated local spot, mainly the near pixel in the same frame and the near position across frames. Further, they investigate the loal window's attention scores and found that most heads show high recall (fraction of attention scores concentrated within a local window) and low std across different input prompts.
+
+<div style="text-align: center; width: 100%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/STA_attn_locality.png" alt="STA attn locality" style="width: 48%; display: inline-block;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/STA_attn_window_investigation.png" alt="STA attn window investigation" style="width: 48%; display: inline-block;">
+</div>
+
+Building on the observation, sliding window attention (SWA) is an ideal candidate to reduce the computational cost. However, existing 2D or 3D SWA implementations are inefficiency due to high overhead from creating a highly irregular attention mask for each window which comes from each query attends to a distinct set of keys, resulting in a zigzag pattern in the attention map and form a lot of mixed blocks. The authors further revisit this sliding windown mechanism and propose a new method called Sliding Tile Attention (STA) to reduce the overhead. STA organizes queries and keys into tiles, all queried in the same tile attent ot the same set of keys whithin their common local window. By setting the tile areq equal to the block size implement by FlashAttention, we can eliminate the mixed blocks and improving computational efficiency.
+
+<div style="text-align: center; width: 100%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/STA_sta.png" alt="STA algorithm">
+</div>
+
+Next, the authors propose an algorithm to search for the optimal window size for each head by averaging the mask-search loss across just 16 prompts using predefined pattern list. They kept full attention for the first \(T_0\) steps and then switch to STA for the rest of the denoising process. Besides, the authors also propose a learning method by fixing the window size and fine-tuning the model by attention distillation loss between STA and original full attention + finaly lyaer alignment loss + the data loss following the flow matching loss.
+
+<div style="display: flex; justify-content: center; gap: 1rem; align-items: flex-start; flex-wrap: wrap;">
+
+  <!-- Left: main image -->
+  <div style="flex: 1 1 45%;">
+    <img src="https://dianyo.github.io//images/ICML2025_videogen/STA_search_algo.png" 
+         alt="STA search algorithm"
+         style="width: 100%; max-width: 100%;">
+  </div>
+
+  <!-- Right: vertical stack -->
+  <div style="flex: 1 1 45%; display: flex; flex-direction: column; gap: 0.5rem;">
+    <img src="https://dianyo.github.io//images/ICML2025_videogen/STA_finetune1.png" alt="STA finetune 1" style="width: 100%;">
+    <img src="https://dianyo.github.io//images/ICML2025_videogen/STA_finetune2.png" alt="STA finetune 2" style="width: 100%;">
+    <img src="https://dianyo.github.io//images/ICML2025_videogen/STA_finetune3.png" alt="STA finetune 3" style="width: 100%;">
+    <img src="https://dianyo.github.io//images/ICML2025_videogen/STA_finetune4.png" alt="STA finetune 4" style="width: 100%;">
+  </div>
+
+</div>
+
+### Experiments & Results
+
+<div style="text-align: center; width: 100%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/STA_main_exp.png" alt="STA main experiment results">
+</div>
+
+<div style="text-align: center; width: 100%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/STA_exp_kernel.png" alt="STA kernel">
 </div>
