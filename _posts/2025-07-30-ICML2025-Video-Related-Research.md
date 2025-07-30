@@ -112,7 +112,7 @@ The experiments are conducted on models including CogVideoX-v1.5-I2V, CogVideoX-
 </div>
 
 <div style="text-align: center; width: 100%; margin: 0 auto;">
-<img src="https://dianyo.github.io//images/ICML2025_videogen/SVG_exp_result.png" alt="SVG experiment results">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/SVG_exp_results.png" alt="SVG experiment results">
 </div>
 
 ## Fast Video Generation with SLIDING TILE ATTENTION
