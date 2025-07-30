@@ -48,7 +48,7 @@ ConceptAttention utilize the multi-modal attention layers (MMATTN) in DiT to gen
 <img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_fig.png" alt="ConceptAttention">
 </div>
 
-The detail algorithm is composed by the following fomulas, where subscripts $x$ denotes image, $p$ denotes text input prompt, $c$ denotes concept input.
+The detail algorithm is composed by the following fomulas, where subscripts \( x \) denotes image, \( p \) denotes text input prompt, \( c \) denotes concept input.
 
 <div style="text-align: center; width: 60%; margin: 0 auto;">
 <img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_formula4.png" alt="ConceptAttention formula 4">
@@ -72,4 +72,45 @@ The authors also provide a inspiring ablation study on how different the output 
 
 <div style="text-align: center; width: 60%; margin: 0 auto;">
 <img src="https://dianyo.github.io//images/ICML2025_videogen/ConceptAttn_ablation.png" alt="ConceptAttention ablation">
+</div>
+
+## Spare VideoGen: Accelerating Video Diffusion Transformers with  Spatial-Temporal Sparsity
+
+### Problem
+Video geneartion is computationally expensive, and due to the quadratic computational complexity with respect to context length, in video it's resolution and number of frames, the computational cost is even more expensive. (General video generation issue nowadays). **How to leverage the nature of attention sparsity that has been shown to be effective in language models to accelerate the video generation process?**
+
+### Proposed Method
+The author observes two inherent sparsity attention patterns, spatial head sparsity and temporal head sparsity. The spatial head sparsity is caused by the model attention is more focused on the local region, while the temporal head sparsity is cuased by the model look at similar regions across frames. Besides, the authors also found that the text prompt and the first frame hold significant attention scores for both spatial and temporal head, so the include these tokens in both spatial and temporal head.
+
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/SVG_spatial_temporal_head.png" alt="SpareVideoGen">
+</div>
+
+The authors further propose a method to leverage the above nature of attention sparsity called Sparse VideoGen (SVG), which is composed by two parts: (1) An online profiling strategy to identify the best sparsity pattern for each head, (2) A layout transformation, which reorders the noncontiguous sparsity pattern of temporal heads to make it hardware friendly.
+
+The main reason that we need online profiling here is that the sparse pattern is highly dynamic across different denoising steps and input data. The proposed online profiling strategy is first sampling a subset of input rows then calculates results with both the spatial and temporal sparsity patterns, and then select the sparsity pattern that has the lower MSE compared to full attention. Profiling just 1% tokens is enough to achieve good results compared to oracle (100%).
+
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/SVG_online_strategy_ablation.png" alt="SVG online profiling" style="width: 48%; display: inline-block;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/SVG_online_strategy_algo.png" alt="SVG online profiling algorithm" style="width: 48%; display: inline-block;">
+</div>
+
+Because of the hardware limitation, for exmaple NVIDIA's Tensor Core required at least 16 contiguous elements along each dimenstion to best utilize the hardware, and the temporal head exhibits a sparse layout of non-contiguous elements with a stride of \( L \) (the number of tokens per frame), SVG propose a layout transformation strategy from token major to frame major as follows:
+
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/SVG_layout_transformation.png" alt="SVG layout transformation">
+</div>
+
+Some details: QK-norm and RoPE is customized with CUDA acode by a sub-warp reduction implementation. The online profiling strategy (fused) and the layout transformation are impelmented by Triton kernel, while the sparse attention kernel using FlashInfer. The authors also implement FP8 quantization into sparse attention.
+
+### Experiments & Results
+The experiments are conducted on models including CogVideoX-v1.5-I2V, CogVideoX-v1.5-T2V, and HunyuanVideo-T2V to generate 720p resolution videos. The baselines contain sparse attention methods like DiTFastAttn and MInference. Besides, the authors also compare the performance of SVG with the cache-based DiT acceleration method like PAB as baseline. They skip the first 25% of denoising steps for all baseline as they are critical to geneartion quality (**But did authors skip the frist 25% of their works or not? It's quite confusing here**).
+
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/SVG_layout_speedup.png" alt="SVG layout speedup" style="width: 48%; display: inline-block;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/SVG_speedup.png" alt="SVG full speedup" style="width: 48%; display: inline-block;">
+</div>
+
+<div style="text-align: center; width: 60%; margin: 0 auto;">
+<img src="https://dianyo.github.io//images/ICML2025_videogen/SVG_exp_result.png" alt="SVG experiment results">
 </div>
