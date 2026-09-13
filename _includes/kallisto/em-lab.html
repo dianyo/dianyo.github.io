@@ -1,0 +1,42 @@
+<section class="k-lab" id="em-lab" aria-labelledby="em-lab-title">
+  <p class="k-eyebrow">Experiment 3 · Counts → abundance</p>
+  <h3 id="em-lab-title">Be the EM algorithm</h3>
+  <label for="k-em-preset">Choose an experiment
+    <select id="k-em-preset">
+      <option value="worked">Worked example: 100 unique / 10 unique / 90 shared</option>
+      <option value="slow">Slow evidence: 1 unique / 999 shared</option>
+      <option value="ambiguous">Unidentifiable: only shared reads</option>
+      <option value="custom">My class counts</option>
+    </select>
+  </label>
+  <details>
+    <summary>Edit class counts, effective lengths, and initialization</summary>
+    <p class="k-help">These are independent statistical examples. Effective lengths below are model parameters, not the lengths of the nine-base toy transcripts. Any edit resets EM and bootstrap results.</p>
+    <div id="k-em-counts" class="k-count-grid"></div>
+    <div class="k-table-scroll" tabindex="0" role="region" aria-label="EM parameters">
+      <table><thead><tr><th scope="col">Transcript</th><th scope="col">Effective length ℓ</th><th scope="col">Starting weight</th></tr></thead><tbody id="k-em-parameters"></tbody></table>
+    </div>
+    <p class="k-help">Starting weights are normalized to sum to 1. Keep them positive so a possible transcript is not permanently excluded.</p>
+  </details>
+  <div class="k-buttons">
+    <button type="button" id="k-em-step" class="k-primary">E-step: split counts</button>
+    <button type="button" id="k-em-run">Run to convergence</button>
+    <button type="button" id="k-em-reset">Reset EM</button>
+    <button type="button" id="k-em-favor">Start favoring T1</button>
+  </div>
+  <p id="k-em-status" class="k-result" role="status" aria-live="polite"></p>
+  <div id="k-em-class-summary" class="k-help"></div>
+  <div id="k-em-bars" class="k-abundance"></div>
+  <div class="k-table-scroll" tabindex="0" role="region" aria-label="Transcript abundance estimates">
+    <table><caption>Current estimate (α is fragment share)</caption><thead><tr><th scope="col">Transcript</th><th scope="col">α</th><th scope="col">N × α</th><th scope="col">TPM</th></tr></thead><tbody id="k-em-estimates"></tbody></table>
+  </div>
+  <div id="k-e-step" hidden>
+    <div class="k-table-scroll" tabindex="0" role="region" aria-label="E-step fractional assignments">
+      <table><caption>E-step: expected fragments from each class (c × w)</caption><thead><tr><th scope="col">Class (count)</th><th scope="col">To T1</th><th scope="col">To T2</th><th scope="col">To T3</th></tr></thead><tbody id="k-e-allocations"></tbody><tfoot id="k-e-totals"></tfoot></table>
+    </div>
+    <p class="k-help">Each row sums to its class count. The M-step divides each column total by N to get the next α.</p>
+  </div>
+  <figure class="k-chart"><svg id="k-em-chart" viewBox="0 0 600 190" role="img" aria-label="Transcript fragment shares across EM iterations"></svg><figcaption id="k-em-chart-caption" class="k-help"></figcaption></figure>
+  <p id="k-em-likelihood" class="k-help"></p>
+  <p class="k-help">Teaching stop rule: maximum absolute change in α &lt; 10⁻⁸, up to 2,000 updates. This is not kallisto’s production stopping rule.</p>
+</section>

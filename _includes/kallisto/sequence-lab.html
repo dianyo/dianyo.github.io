@@ -1,0 +1,37 @@
+<section class="k-lab" id="sequence-lab" aria-labelledby="sequence-lab-title">
+  <p class="k-eyebrow">Experiment 1 · Sequence → compatibility</p>
+  <h3 id="sequence-lab-title">Follow a read, one k-mer at a time</h3>
+  <p class="k-help">Change k or edit the read. Click a k-mer to see its matches and the intersection so far.</p>
+  <div class="k-controls">
+    <label class="k-grow" for="k-read">Read sequence
+      <input id="k-read" type="text" value="TGACGTA" maxlength="60" spellcheck="false" autocapitalize="characters" autocomplete="off" aria-describedby="k-read-help">
+    </label>
+    <label for="k-size">k = <output id="k-size-value">3</output>
+      <input id="k-size" type="range" min="2" max="7" step="1" value="3">
+    </label>
+  </div>
+  <p id="k-read-help" class="k-help">2–60 A/C/G/T bases; spaces are ignored. This teaching index uses only the forward strand.</p>
+  <div class="k-buttons" aria-label="Example reads">
+    <button type="button" data-read="TGACGTA">Shared read</button>
+    <button type="button" data-read="ACTGACG">Unique read</button>
+    <button type="button" data-read="ACTGTCGT">One substitution</button>
+    <button type="button" data-read="AAAAAAA">No matches</button>
+  </div>
+  <div id="k-read-window" class="k-sequence" aria-label="Read with the current k-mer highlighted"></div>
+  <div id="k-kmers" class="k-kmers" aria-label="Read k-mers"></div>
+  <div class="k-buttons">
+    <button type="button" id="k-prev">← Previous</button>
+    <button type="button" id="k-next">Next k-mer →</button>
+    <span id="k-step-label" class="k-help"></span>
+  </div>
+  <div id="k-transcripts" class="k-transcripts"></div>
+  <div id="k-intersection" class="k-result" role="status" aria-live="polite"></div>
+  <div id="k-read-result" class="k-help"></div>
+  <details>
+    <summary>Inspect the complete k-mer index</summary>
+    <p class="k-help" id="k-index-summary"></p>
+    <div class="k-table-scroll" tabindex="0" role="region" aria-label="K-mer index table">
+      <table><thead><tr><th scope="col">k-mer</th><th scope="col">Transcript set C(k-mer)</th></tr></thead><tbody id="k-index"></tbody></table>
+    </div>
+  </details>
+</section>

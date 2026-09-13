@@ -1,0 +1,9 @@
+<section class="k-lab" id="bootstrap-lab" aria-labelledby="bootstrap-lab-title">
+  <p class="k-eyebrow">Experiment 4 · Resample the evidence</p>
+  <h3 id="bootstrap-lab-title">Thirty alternate draws from the same sample</h3>
+  <p class="k-help">Use the current EM class counts. Each bootstrap draws N observations with replacement, then refits the same model. The original counts stay intact.</p>
+  <button type="button" id="k-bootstrap" class="k-primary">Run 30 bootstrap replicates</button>
+  <p id="k-bootstrap-status" role="status" aria-live="polite" class="k-help">Uses a fixed seed (2026), so the same inputs reproduce the same result.</p>
+  <div id="k-bootstrap-output"></div>
+  <p class="k-help">The displayed range is the minimum–maximum across 30 fits, not a calibrated confidence interval. A flat likelihood can produce identical answers in every bootstrap simply because the same initialization picks the same split. That is not proof of certainty.</p>
+</section>
