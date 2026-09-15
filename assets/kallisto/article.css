@@ -57,12 +57,20 @@
 .k-chart svg, .k-bootstrap-chart { display: block; width: 100%; height: auto; }
 .k-lab svg text { font-family: Helvetica, Arial, sans-serif; fill: #59616a; font-size: 12px; }
 .k-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0,0,0,0); white-space: nowrap; border: 0; }
-.k-equation { margin: 22px 0; padding: 14px 18px; border-left: 3px solid #d5dee6; font-family: ui-monospace, Menlo, Consolas, monospace; font-size: 16px; line-height: 1.9; overflow-x: auto; background: #fafafa; }
-.k-equation sub, .k-sub { vertical-align: sub; font-size: .75em; }
-.k-equation sup { vertical-align: super; font-size: .75em; }
+.k-equation { margin: 22px 0; padding: 18px; border-left: 3px solid #d5dee6; font-size: 17px; overflow-x: auto; background: #fafafa; }
+.k-equation .katex-display { margin: 0; text-align: left; }
+.k-equation .katex-display > .katex { text-align: left; }
+.k-equation:focus-visible { outline: 3px solid #4183c4; outline-offset: 3px; }
+.k-math .katex { font-size: 1.05em; }
+.k-equation:not([data-math-rendered]) { white-space: pre-wrap; overflow-wrap: anywhere; }
 .k-roadmap { padding: 18px 22px; border-block: 1px solid #eee; margin: 24px 0; font-size: 16px; }
 .k-roadmap ol { margin: 8px 0 0; }
 .k-note { border-left: 3px solid #4183c4; padding-left: 16px; }
+.k-paper-figure { margin: 28px 0; }
+.k-paper-figure img { display: block; width: 100%; height: auto; }
+.k-paper-benchmark img { max-width: 560px; margin-inline: auto; }
+.k-paper-figure figcaption { margin-top: 12px; font-size: 14px; line-height: 1.5; color: #59616a; }
+.k-paper-figure a:focus-visible { outline: 3px solid #4183c4; outline-offset: 3px; }
 .k-flow { display: flex; flex-wrap: wrap; gap: 6px 12px; margin: 25px 0; font-size: 16px; font-weight: bold; }
 .k-flow span { white-space: nowrap; }
 @media (max-width: 520px) {
@@ -74,5 +82,5 @@
   .k-lab svg text { font-size: 20px; }
   .k-lab th, .k-lab td { padding: 7px 4px; }
   .k-lab .k-sequence { font-size: 18px; }
-  .k-equation { font-size: 14px; padding: 10px; }
+  .k-equation { font-size: 15px; padding: 16px 10px; }
 }

@@ -156,7 +156,7 @@
     } else {
       const next = M.emStep(classes, alpha, lengths);
       alpha = next.alpha; history.push(next); iterations++; pending = null;
-      emMessage = 'M-step complete. Maximum change in α = ' + next.delta.toExponential(2) + (next.delta < 1e-8 ? '; the teaching stop rule is satisfied.' : '. Take another E-step or run the remaining iterations.');
+      emMessage = 'M-step complete. Maximum change in α = ' + next.delta.toExponential(2) + (next.delta < 1e-8 ? '; the stopping tolerance is satisfied.' : '. Take another E-step or run the remaining iterations.');
     }
     renderEM();
   }
@@ -166,7 +166,7 @@
     const result = M.fit(classes, lengths, alpha, {maxIterations: 2000, tolerance: 1e-8});
     alpha = result.alpha; iterations += result.iterations; pending = null;
     history.push(...result.history.slice(1));
-    emMessage = result.converged ? 'Stopped: maximum change in α is below 10⁻⁸. Stability alone does not establish identifiability.' : 'Reached the 2,000-update limit for this run; not converged to the teaching tolerance. You can continue running.';
+    emMessage = result.converged ? 'Stopped: maximum change in α is below 10⁻⁸. Stability alone does not establish identifiability.' : 'Reached the 2,000-update limit for this run; not converged to the selected tolerance. You can continue running.';
     renderEM();
   }
 
@@ -189,7 +189,7 @@
       });
       const unfinished = fits.filter(f => !f.converged).length;
       $('k-bootstrap-output').innerHTML = svg + '</svg><div class="k-table-scroll"><table><caption>Bootstrap fragment shares, α (not TPM)</caption><thead><tr><th>Transcript</th><th>Observed range</th><th>Mean</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
-      $('k-bootstrap-status').textContent = '30 resamples, each with N = ' + sum(classes.map(e => e.count)) + ' fragments. ' + (unfinished ? unfinished + ' fits reached the iteration cap; their displayed estimates are unfinished.' : 'All fits met the teaching stop rule.') + ' No new biological observations were created.';
+      $('k-bootstrap-status').textContent = '30 resamples, each with N = ' + sum(classes.map(e => e.count)) + ' fragments. ' + (unfinished ? unfinished + ' fits reached the iteration cap; their displayed estimates are unfinished.' : 'All fits met the stopping tolerance.') + ' No new biological observations were created.';
     } catch (error) { $('k-bootstrap-status').textContent = error.message; }
     $('k-bootstrap').disabled = !currentValid;
   }
@@ -215,7 +215,7 @@
     const existing = reads.find(r => r.sequence === sequence);
     if (existing) existing.count = Math.min(10000, existing.count + 10);
     else if (reads.length < 20) reads.push({sequence, count: 10});
-    else { $('k-sample-message').textContent = 'This toy sample supports 20 distinct reads. Remove one to add another.'; return; }
+    else { $('k-sample-message').textContent = 'You can add up to 20 distinct reads. Remove one to add another.'; return; }
     $('k-sample-message').textContent = 'Added ' + sequence + '. Counts per sequence are capped at 10,000.';
     updateSample();
   });

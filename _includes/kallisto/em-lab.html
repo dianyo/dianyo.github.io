@@ -11,7 +11,7 @@
   </label>
   <details>
     <summary>Edit class counts, effective lengths, and initialization</summary>
-    <p class="k-help">These are independent statistical examples. Effective lengths below are model parameters, not the lengths of the nine-base toy transcripts. Any edit resets EM and bootstrap results.</p>
+    <p class="k-help">Change the evidence or the starting estimate to see how EM responds. Effective lengths are independent of the short sequences in experiment 1. Any edit resets EM and bootstrap results.</p>
     <div id="k-em-counts" class="k-count-grid"></div>
     <div class="k-table-scroll" tabindex="0" role="region" aria-label="EM parameters">
       <table><thead><tr><th scope="col">Transcript</th><th scope="col">Effective length ℓ</th><th scope="col">Starting weight</th></tr></thead><tbody id="k-em-parameters"></tbody></table>
@@ -38,5 +38,5 @@
   </div>
   <figure class="k-chart"><svg id="k-em-chart" viewBox="0 0 600 190" role="img" aria-label="Transcript fragment shares across EM iterations"></svg><figcaption id="k-em-chart-caption" class="k-help"></figcaption></figure>
   <p id="k-em-likelihood" class="k-help"></p>
-  <p class="k-help">Teaching stop rule: maximum absolute change in α &lt; 10⁻⁸, up to 2,000 updates. This is not kallisto’s production stopping rule.</p>
+  <p class="k-help">This experiment stops when the largest change in a transcript's fragment share is below <span class="k-math">\(10^{-8}\)</span>, with a limit of 2,000 updates per run. Kallisto uses its own convergence criteria.</p>
 </section>
