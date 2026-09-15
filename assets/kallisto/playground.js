@@ -16,6 +16,12 @@
     {sequence: 'ACTGAC', count: 90}, {sequence: 'GGTGAC', count: 20},
     {sequence: 'TGACGTA', count: 40}
   ];
+  const exampleDescriptions = {
+    TGACGTA: 'Shared read: the complete sequence occurs in T1 and T3, so the read has more than one possible origin.',
+    ACTGACG: 'Unique read: its individual k-mers are shared by different transcripts, but combining them leaves only T1 compatible.',
+    ACTGTCGT: 'One substitution: one base differs from the T1 segment ACTGACGT. K-mers crossing that base may be absent, while unaffected k-mers can still provide evidence.',
+    AAAAAAA: 'No matches: none of this read’s k-mers occur in the reference index, so the read is unassigned.'
+  };
   let reads = defaultReads(), k = 3, selected = 0, index, alignment, aggregate;
   let classes, lengths = [100, 100, 100], initial = [1, 1, 1], alpha, history, pending, iterations;
   let emMessage = '', currentValid = true;
@@ -33,6 +39,7 @@
     document.querySelectorAll('.k-example-reads [data-read]').forEach(button => {
       button.setAttribute('aria-pressed', String(button.dataset.read === sequence));
     });
+    $('k-example-description').textContent = exampleDescriptions[sequence] || 'Custom read: follow its k-mers below to see which reference transcripts remain compatible.';
     if (resetStep) selected = 0;
     selected = Math.max(0, Math.min(selected, alignment.steps.length - 1));
     const step = alignment.steps[selected];

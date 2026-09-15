@@ -12,11 +12,12 @@
   </div>
   <p id="k-read-help" class="k-help">Enter 2–60 A/C/G/T bases; spaces are ignored. Sequences are compared in the orientation shown.</p>
   <div class="k-buttons k-example-reads" aria-label="Example reads">
-    <button type="button" data-read="TGACGTA" aria-pressed="true">Shared read</button>
-    <button type="button" data-read="ACTGACG" aria-pressed="false">Unique read</button>
-    <button type="button" data-read="ACTGTCGT" aria-pressed="false">One substitution</button>
-    <button type="button" data-read="AAAAAAA" aria-pressed="false">No matches</button>
+    <button type="button" data-read="TGACGTA" aria-pressed="true"><strong>Shared read</strong><span>Occurs in T1 and T3</span></button>
+    <button type="button" data-read="ACTGACG" aria-pressed="false"><strong>Unique read</strong><span>Occurs only in T1</span></button>
+    <button type="button" data-read="ACTGTCGT" aria-pressed="false"><strong>One substitution</strong><span>One base differs from a T1 segment</span></button>
+    <button type="button" data-read="AAAAAAA" aria-pressed="false"><strong>No matches</strong><span>No k-mer occurs in the index</span></button>
   </div>
+  <p id="k-example-description" class="k-example-description k-help" aria-live="polite"></p>
   <div id="k-read-window" class="k-sequence" aria-label="Read with the current k-mer highlighted"></div>
   <div id="k-kmers" class="k-kmers" aria-label="Read k-mers"></div>
   <div class="k-buttons">
