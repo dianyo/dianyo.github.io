@@ -30,6 +30,9 @@
     index = M.buildIndex(M.TRANSCRIPTS, k);
     const sequence = $('k-read').value.toUpperCase().replace(/\s/g, '');
     alignment = M.pseudoalign(sequence, k, index);
+    document.querySelectorAll('.k-example-reads [data-read]').forEach(button => {
+      button.setAttribute('aria-pressed', String(button.dataset.read === sequence));
+    });
     if (resetStep) selected = 0;
     selected = Math.max(0, Math.min(selected, alignment.steps.length - 1));
     const step = alignment.steps[selected];

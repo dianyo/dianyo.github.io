@@ -11,11 +11,11 @@
     </label>
   </div>
   <p id="k-read-help" class="k-help">Enter 2–60 A/C/G/T bases; spaces are ignored. Sequences are compared in the orientation shown.</p>
-  <div class="k-buttons" aria-label="Example reads">
-    <button type="button" data-read="TGACGTA">Shared read</button>
-    <button type="button" data-read="ACTGACG">Unique read</button>
-    <button type="button" data-read="ACTGTCGT">One substitution</button>
-    <button type="button" data-read="AAAAAAA">No matches</button>
+  <div class="k-buttons k-example-reads" aria-label="Example reads">
+    <button type="button" data-read="TGACGTA" aria-pressed="true">Shared read</button>
+    <button type="button" data-read="ACTGACG" aria-pressed="false">Unique read</button>
+    <button type="button" data-read="ACTGTCGT" aria-pressed="false">One substitution</button>
+    <button type="button" data-read="AAAAAAA" aria-pressed="false">No matches</button>
   </div>
   <div id="k-read-window" class="k-sequence" aria-label="Read with the current k-mer highlighted"></div>
   <div id="k-kmers" class="k-kmers" aria-label="Read k-mers"></div>
