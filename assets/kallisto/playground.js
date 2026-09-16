@@ -5,6 +5,11 @@
   const $ = id => document.getElementById(id);
   const colors = ['#326da6', '#aa5921', '#408170'];
   const members = [[0], [1], [2], [0, 1], [0, 2], [1, 2], [0, 1, 2]];
+  const presetClasses = {
+    worked: [{members: [0], count: 100}, {members: [1], count: 10}, {members: [0, 1], count: 90}],
+    slow: [{members: [0], count: 1}, {members: [0, 1], count: 999}],
+    ambiguous: [{members: [0, 1], count: 200}]
+  };
   const esc = value => String(value).replace(/[&<>"']/g, char => ({'&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;'}[char]));
   const fmt = (n, digits = 2) => n.toLocaleString('en-US', {maximumFractionDigits: digits});
   const setName = set => set.length ? '{' + set.map(t => 'T' + (t + 1)).join(', ') + '}' : '∅';
@@ -24,7 +29,7 @@
   };
   let reads = defaultReads(), k = 3, selected = 0, index, alignment, aggregate;
   let classes, lengths = [100, 100, 100], initial = [1, 1, 1], alpha, history, pending, iterations;
-  let emMessage = '', currentValid = true;
+  let emMessage = '', currentValid = true, animationRun = 0, animating = false, activePhase = '';
 
   function highlighted(sequence, positions, width) {
     return Array.from(sequence, (base, i) => positions.some(p => i >= p && i < p + width) ? '<mark>' + esc(base) + '</mark>' : esc(base)).join('');
@@ -33,6 +38,8 @@
   function updateSequence(resetStep) {
     k = Number($('k-size').value);
     $('k-size-value').textContent = k;
+    $('k-class-size').value = k;
+    $('k-class-size-value').textContent = k;
     index = M.buildIndex(M.TRANSCRIPTS, k);
     const sequence = $('k-read').value.toUpperCase().replace(/\s/g, '');
     alignment = M.pseudoalign(sequence, k, index);
@@ -71,7 +78,6 @@
       invalid: 'Unassigned: the read contains invalid bases or is empty.'
     };
     $('k-read-result').textContent = descriptions[alignment.status] + ' ' + alignment.matchedCount + ' / ' + alignment.totalKmers + ' windows match the index. A matching window is evidence, not a separate read count.';
-    $('k-add-read').disabled = alignment.status === 'invalid' || sequence.length > 60;
     $('k-index-summary').textContent = index.size + ' distinct ' + k + '-mers; repeated occurrences share one entry. Highlighted row = selected read k-mer.';
     $('k-index').innerHTML = Array.from(index).sort((a, b) => a[0].localeCompare(b[0])).map(([mer, set]) => '<tr class="' + (step && mer === step.kmer ? 'k-index-active' : '') + '"><td><code>' + mer + '</code></td><td>' + tags(set) + '</td></tr>').join('');
     updateSample();
@@ -79,10 +85,13 @@
 
   function updateSample() {
     aggregate = M.aggregate(reads, k, index);
-    $('k-read-matrix').innerHTML = reads.map((read, i) => '<tr><td><code>' + esc(read.sequence) + '</code></td><td><input type="number" data-count="' + i + '" aria-label="Copies of ' + esc(read.sequence) + '" min="0" max="10000" step="1" value="' + read.count + '"></td>' + [0, 1, 2].map(t => '<td>' + (aggregate.results[i].compatible.includes(t) ? '1' : '0') + '</td>').join('') + '<td><button type="button" data-remove="' + i + '" aria-label="Remove ' + esc(read.sequence) + '">×</button></td></tr>').join('');
+    $('k-read-matrix').innerHTML = reads.map((read, i) => '<tr><td><code>' + esc(read.sequence) + '</code></td><td><input type="number" data-count="' + i + '" aria-label="Copies of ' + esc(read.sequence) + '" min="0" max="10000" step="1" value="' + read.count + '"></td>' + [0, 1, 2].map(t => {
+      const compatible = aggregate.results[i].compatible.includes(t);
+      return '<td class="k-compat-' + (compatible ? 'yes k-compat-t' + t : 'no') + '" data-compatible="' + compatible + '" aria-label="' + (compatible ? 'Compatible' : 'Not compatible') + ' with T' + (t + 1) + '">' + (compatible ? '1' : '0') + '</td>';
+    }).join('') + '</tr>').join('');
     const total = aggregate.assigned + aggregate.unassigned;
     $('k-sample-totals').textContent = fmt(total, 0) + ' reads → ' + fmt(aggregate.assigned, 0) + ' assigned + ' + fmt(aggregate.unassigned, 0) + ' unassigned → ' + aggregate.classes.filter(e => e.count > 0).length + ' nonempty equivalence classes (k = ' + k + ').';
-    $('k-classes').innerHTML = aggregate.classes.filter(e => e.count > 0).map(e => '<div class="k-class">' + tags(e.members) + '<br><strong>' + fmt(e.count, 0) + '</strong> fragments</div>').join('') || '<p class="k-help">No assigned fragments yet. Restore the sample or add a matching read.</p>';
+    $('k-classes').innerHTML = aggregate.classes.filter(e => e.count > 0).map(e => '<div class="k-class">' + tags(e.members) + '<br><strong>' + fmt(e.count, 0) + '</strong> fragments</div>').join('') || '<p class="k-help">No assigned fragments yet. Increase a copy count or restore the sample.</p>';
     $('k-use-sample').disabled = aggregate.assigned === 0;
   }
 
@@ -95,13 +104,10 @@
     $('k-em-parameters').innerHTML = [0, 1, 2].map(t => '<tr><th scope="row">T' + (t + 1) + '</th><td><input data-length="' + t + '" type="number" min="1" max="10000" step="1" value="' + lengths[t] + '" aria-label="T' + (t + 1) + ' effective length"></td><td><input data-initial="' + t + '" type="number" min="0.01" max="100" step="0.01" value="' + initial[t] + '" aria-label="T' + (t + 1) + ' starting weight"></td></tr>').join('');
   }
 
-  function clearBootstrap() {
-    $('k-bootstrap-output').innerHTML = '';
-    $('k-bootstrap-status').textContent = 'Uses a fixed seed (2026), so the same inputs reproduce the same result.';
-  }
-
   function resetEM(message = '') {
-    clearBootstrap();
+    animationRun++;
+    animating = false;
+    activePhase = '';
     pending = null; iterations = 0; alpha = normalize(initial);
     currentValid = sum(classes.map(e => e.count)) > 0;
     history = [{alpha: alpha.slice(), logLikelihood: currentValid ? M.likelihood(classes, alpha, lengths) : 0}];
@@ -111,13 +117,8 @@
 
   function loadPreset(name) {
     lengths = [100, 100, 100]; initial = [1, 1, 1];
-    const presets = {
-      worked: [{members: [0], count: 100}, {members: [1], count: 10}, {members: [0, 1], count: 90}],
-      slow: [{members: [0], count: 1}, {members: [0, 1], count: 999}],
-      ambiguous: [{members: [0, 1], count: 200}]
-    };
     if (name === 'custom') return;
-    classes = fullClasses(presets[name]);
+    classes = fullClasses(presetClasses[name]);
     parameterInputs();
     resetEM(name === 'ambiguous' ? 'Only {T1, T2} has evidence. Compare equal initialization with “Start favoring T1”: the data cannot distinguish those splits.' : '');
   }
@@ -126,9 +127,14 @@
     const n = sum(classes.map(e => e.count));
     const counts = alpha.map(a => a * n);
     const tpm = currentValid ? M.tpm(counts, lengths) : [0, 0, 0];
+    $('k-em-status').setAttribute('aria-live', animating ? 'off' : 'polite');
     $('k-em-status').textContent = currentValid ? 'Iteration ' + iterations + '. ' + emMessage : 'No observations. Add a positive class count before fitting. There is no abundance estimate from an empty sample.';
     $('k-em-class-summary').textContent = 'Current input: ' + classes.filter(e => e.count > 0).map(e => setName(e.members) + ' × ' + e.count).join('; ') + '. N = ' + n + '.';
-    $('k-em-bars').innerHTML = [0, 1, 2].map(t => '<div class="k-bar-row"><strong>T' + (t + 1) + '</strong><div class="k-bar-track"><div class="k-bar-fill" style="width:' + (currentValid ? alpha[t] * 100 : 0) + '%;background:' + colors[t] + '"></div></div><span class="k-number">' + (currentValid ? fmt(alpha[t] * 100, 2) + '%' : '—') + '</span></div>').join('');
+    if (!$('k-em-bars').firstElementChild) $('k-em-bars').innerHTML = [0, 1, 2].map(t => '<div class="k-bar-row"><strong>T' + (t + 1) + '</strong><div class="k-bar-track"><div class="k-bar-fill" data-em-bar="' + t + '" style="background:' + colors[t] + '"></div></div><span class="k-number" data-em-value="' + t + '"></span></div>').join('');
+    [0, 1, 2].forEach(t => {
+      $('k-em-bars').querySelector('[data-em-bar="' + t + '"]').style.width = (currentValid ? alpha[t] * 100 : 0) + '%';
+      $('k-em-bars').querySelector('[data-em-value="' + t + '"]').textContent = currentValid ? fmt(alpha[t] * 100, 2) + '%' : '—';
+    });
     $('k-em-estimates').innerHTML = [0, 1, 2].map(t => '<tr><th scope="row">T' + (t + 1) + '</th><td class="k-number">' + (currentValid ? alpha[t].toFixed(5) : '—') + '</td><td class="k-number">' + (currentValid ? fmt(counts[t], 3) : '—') + '</td><td class="k-number">' + (currentValid ? fmt(tpm[t], 1) : '—') + '</td></tr>').join('');
     $('k-e-step').hidden = !pending;
     if (pending) {
@@ -136,7 +142,12 @@
       $('k-e-totals').innerHTML = '<tr><th scope="row">Expected counts</th>' + pending.counts.map(value => '<td><strong>' + fmt(value, 3) + '</strong></td>').join('') + '</tr>';
     }
     $('k-em-step').textContent = pending ? 'M-step: update α' : 'E-step: split counts';
-    ['k-em-step', 'k-em-run', 'k-bootstrap'].forEach(id => $(id).disabled = !currentValid);
+    $('k-em-animate').textContent = animating ? 'Stop animation' : 'Animate E/M from start';
+    $('k-em-animate').setAttribute('aria-pressed', String(animating));
+    $('k-em-animate').disabled = !currentValid;
+    $('k-em-phase-e').dataset.active = String(activePhase === 'e');
+    $('k-em-phase-m').dataset.active = String(activePhase === 'm');
+    ['k-em-step', 'k-em-run'].forEach(id => $(id).disabled = !currentValid || animating);
     plotHistory();
     const ll = history[history.length - 1].logLikelihood;
     $('k-em-likelihood').textContent = currentValid ? 'Log likelihood (natural log; constant omitted): ' + ll.toFixed(6) + '. Change from initialization: +' + (ll - history[0].logLikelihood).toFixed(6) + '. Compare likelihoods only for the same counts and lengths.' : '';
@@ -162,10 +173,12 @@
     if (!currentValid) return;
     if (!pending) {
       pending = M.expectation(classes, alpha, lengths);
+      activePhase = 'e';
       emMessage = 'E-step complete. The expected assignments below use the current estimate. Now apply the M-step.';
     } else {
       const next = M.emStep(classes, alpha, lengths);
       alpha = next.alpha; history.push(next); iterations++; pending = null;
+      activePhase = 'm';
       emMessage = 'M-step complete. Maximum change in α = ' + next.delta.toExponential(2) + (next.delta < 1e-8 ? '; the stopping tolerance is satisfied.' : '. Take another E-step or run the remaining iterations.');
     }
     renderEM();
@@ -176,32 +189,69 @@
     const result = M.fit(classes, lengths, alpha, {maxIterations: 2000, tolerance: 1e-8});
     alpha = result.alpha; iterations += result.iterations; pending = null;
     history.push(...result.history.slice(1));
+    activePhase = 'm';
     emMessage = result.converged ? 'Stopped: maximum change in α is below 10⁻⁸. Stability alone does not establish identifiability.' : 'Reached the 2,000-update limit for this run; not converged to the selected tolerance. You can continue running.';
     renderEM();
   }
 
-  async function bootstrap() {
+  function animationCheckpoints(total) {
+    if (total <= 12) return Array.from({length: total}, (_, i) => i + 1);
+    const points = [1, 2, 3, 4, 5, 6];
+    for (let i = 1; i <= 6; i++) points.push(Math.round(6 * Math.pow(total / 6, i / 6)));
+    return Array.from(new Set(points)).filter(point => point <= total).sort((a, b) => a - b);
+  }
+
+  async function animateEM() {
     if (!currentValid) return;
-    $('k-bootstrap').disabled = true;
-    $('k-bootstrap-status').textContent = 'Resampling 30 datasets and refitting…';
-    await new Promise(resolve => setTimeout(resolve, 20));
-    try {
-      const rng = M.seededRandom(2026), fits = [];
-      for (let i = 0; i < 30; i++) fits.push(M.fit(M.bootstrapCounts(classes, rng), lengths, normalize(initial), {maxIterations: 2000, tolerance: 1e-8}));
-      let svg = '<svg class="k-bootstrap-chart" viewBox="0 0 600 170" role="img" aria-label="Thirty bootstrap estimates of fragment share for each transcript"><title>Each dot is one bootstrap estimate of fragment share</title>';
-      [0, .25, .5, .75, 1].forEach(v => { const x = 50 + 520 * v; svg += '<line x1="' + x + '" x2="' + x + '" y1="15" y2="125" stroke="#dce2e6"/><text x="' + (x - 8) + '" y="150">' + v * 100 + '%</text>'; });
-      let rows = '';
-      [0, 1, 2].forEach(t => {
-        const values = fits.map(f => f.alpha[t]).sort((a, b) => a - b);
-        svg += '<text x="5" y="' + (34 + t * 40) + '">T' + (t + 1) + '</text>';
-        fits.forEach((f, i) => { svg += '<circle cx="' + (50 + f.alpha[t] * 520) + '" cy="' + (30 + t * 40 + ((i % 5) - 2) * 3) + '" r="3" fill="' + colors[t] + '" opacity=".65"/>'; });
-        rows += '<tr><th scope="row">T' + (t + 1) + '</th><td>' + fmt(values[0] * 100) + '% – ' + fmt(values[29] * 100) + '%</td><td>' + fmt(sum(values) / 30 * 100) + '%</td></tr>';
-      });
-      const unfinished = fits.filter(f => !f.converged).length;
-      $('k-bootstrap-output').innerHTML = svg + '</svg><div class="k-table-scroll"><table><caption>Bootstrap fragment shares, α (not TPM)</caption><thead><tr><th>Transcript</th><th>Observed range</th><th>Mean</th></tr></thead><tbody>' + rows + '</tbody></table></div>';
-      $('k-bootstrap-status').textContent = '30 resamples, each with N = ' + sum(classes.map(e => e.count)) + ' fragments. ' + (unfinished ? unfinished + ' fits reached the iteration cap; their displayed estimates are unfinished.' : 'All fits met the stopping tolerance.') + ' No new biological observations were created.';
-    } catch (error) { $('k-bootstrap-status').textContent = error.message; }
-    $('k-bootstrap').disabled = !currentValid;
+    if (animating) {
+      animationRun++;
+      animating = false;
+      activePhase = '';
+      emMessage = 'Animation stopped at iteration ' + iterations + '. Continue manually or restart from the beginning.';
+      renderEM();
+      return;
+    }
+
+    resetEM('Animation starting from the selected initial weights.');
+    const result = M.fit(classes, lengths, alpha, {maxIterations: 2000, tolerance: 1e-8});
+    const checkpoints = animationCheckpoints(result.iterations);
+    const token = animationRun;
+    animating = true;
+    renderEM();
+    await new Promise(resolve => setTimeout(resolve, 250));
+
+    for (let i = 0; i < checkpoints.length; i++) {
+      if (token !== animationRun) return;
+      const checkpoint = checkpoints[i];
+      const skipped = i > 0 && checkpoint > checkpoints[i - 1] + 1;
+      alpha = result.history[checkpoint - 1].alpha.slice();
+      history = result.history.slice(0, checkpoint);
+      iterations = checkpoint - 1;
+      pending = M.expectation(classes, alpha, lengths);
+      activePhase = 'e';
+      emMessage = (skipped ? 'Fast-forwarded to iteration ' + iterations + '. ' : '') + 'E-step ' + checkpoint + ': divide every class using the current α / ℓ weights.';
+      renderEM();
+      await new Promise(resolve => setTimeout(resolve, 350));
+
+      if (token !== animationRun) return;
+      const next = result.history[checkpoint];
+      alpha = next.alpha.slice();
+      history = result.history.slice(0, checkpoint + 1);
+      iterations = checkpoint;
+      pending = null;
+      activePhase = 'm';
+      emMessage = 'M-step ' + checkpoint + ': update α from the expected counts. Maximum change = ' + next.delta.toExponential(2) + '.';
+      renderEM();
+      await new Promise(resolve => setTimeout(resolve, 250));
+    }
+
+    if (token !== animationRun) return;
+    animating = false;
+    activePhase = '';
+    emMessage = result.converged
+      ? 'Animation complete: converged after ' + result.iterations + ' updates. Maximum change is below 10⁻⁸.'
+      : 'Animation complete: reached the 2,000-update limit without meeting the stopping tolerance.';
+    renderEM();
   }
 
   function validNumber(input, min, max, integer) {
@@ -212,6 +262,11 @@
 
   $('k-read').addEventListener('input', () => updateSequence(true));
   $('k-size').addEventListener('input', () => updateSequence(true));
+  $('k-class-size').addEventListener('input', event => {
+    $('k-size').value = event.target.value;
+    updateSequence(true);
+    $('k-sample-message').textContent = 'Reprocessed the sample with k = ' + k + '.';
+  });
   $('sequence-lab').addEventListener('click', event => {
     const button = event.target.closest('button');
     if (!button) return;
@@ -220,20 +275,11 @@
   });
   $('k-prev').addEventListener('click', () => { selected--; updateSequence(false); });
   $('k-next').addEventListener('click', () => { selected++; updateSequence(false); });
-  $('k-add-read').addEventListener('click', () => {
-    const sequence = $('k-read').value.toUpperCase().replace(/\s/g, '');
-    const existing = reads.find(r => r.sequence === sequence);
-    if (existing) existing.count = Math.min(10000, existing.count + 10);
-    else if (reads.length < 20) reads.push({sequence, count: 10});
-    else { $('k-sample-message').textContent = 'You can add up to 20 distinct reads. Remove one to add another.'; return; }
-    $('k-sample-message').textContent = 'Added ' + sequence + '. Counts per sequence are capped at 10,000.';
-    updateSample();
-  });
-  $('k-reset-reads').addEventListener('click', () => { reads = defaultReads(); $('k-sample-message').textContent = 'Sample restored.'; updateSample(); });
-  $('k-clear-reads').addEventListener('click', () => { reads = []; $('k-sample-message').textContent = 'Sample cleared.'; updateSample(); });
-  $('k-read-matrix').addEventListener('click', event => {
-    const button = event.target.closest('[data-remove]');
-    if (button) { reads.splice(Number(button.dataset.remove), 1); updateSample(); }
+  $('k-reset-reads').addEventListener('click', () => {
+    reads = defaultReads();
+    $('k-size').value = '3';
+    updateSequence(true);
+    $('k-sample-message').textContent = 'Restored the default counts and k = 3.';
   });
   $('k-read-matrix').addEventListener('change', event => {
     const input = event.target;
@@ -268,10 +314,10 @@
     $('k-em-preset').value = 'custom'; resetEM('Parameters changed; EM restarted.');
   });
   $('k-em-step').addEventListener('click', oneStep);
+  $('k-em-animate').addEventListener('click', animateEM);
   $('k-em-run').addEventListener('click', runEM);
   $('k-em-reset').addEventListener('click', () => resetEM());
   $('k-em-favor').addEventListener('click', () => { initial = [8, 1, 1]; parameterInputs(); resetEM('Starting weights are now 8:1:1. Compare the result with equal starting weights (set them back to 1:1:1 under Edit).'); });
-  $('k-bootstrap').addEventListener('click', bootstrap);
   updateSequence(true);
   loadPreset('worked');
 }());

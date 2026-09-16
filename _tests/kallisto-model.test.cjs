@@ -144,10 +144,6 @@ test('zero-count classes remain valid after an unsupported transcript reaches ze
   assert.equal(fit.converged, true);
   close(fit.alpha[0], 100 / 110, 1e-8);
   assert.equal(fit.alpha[2], 0);
-  const sampled = model.bootstrapCounts(classes, model.seededRandom(2026));
-  const bootstrapFit = model.fit(sampled, [100, 100, 100], [1 / 3, 1 / 3, 1 / 3]);
-  assert.equal(bootstrapFit.converged, true);
-  assert.equal(bootstrapFit.alpha[2], 0);
 });
 
 test('TPM corrects counts for length and sums to one million', () => {
@@ -155,20 +151,6 @@ test('TPM corrects counts for length and sums to one million', () => {
   vectorClose(result, [2e6 / 3, 1e6 / 3, 0], 1e-8);
   close(result.reduce((a, b) => a + b, 0), 1e6, 1e-8);
   assert.throws(() => model.tpm([0, 0, 0], equalLengths), /undefined/);
-});
-
-test('bootstrap is deterministic by seed and conserves the assigned sample size', () => {
-  const first = model.bootstrapCounts(informativeClasses, model.seededRandom(2026));
-  const second = model.bootstrapCounts(informativeClasses, model.seededRandom(2026));
-  assert.deepEqual(first, second);
-  assert.equal(first.reduce((sum, group) => sum + group.count, 0), 200);
-  assert.deepEqual(first.map(group => group.members), informativeClasses.map(group => group.members));
-  assert.notDeepEqual(first, informativeClasses);
-  assert.deepEqual(model.bootstrapCounts([], model.seededRandom(1)), []);
-  assert.deepEqual(model.bootstrapCounts([{ members: [0], count: 0 }, { members: [1], count: 3 }], () => 0), [
-    { members: [0], count: 0 }, { members: [1], count: 3 }
-  ]);
-  assert.throws(() => model.bootstrapCounts(informativeClasses, () => 1), /\[0, 1\)/);
 });
 
 test('fitting rejects empty evidence and invalid parameters rather than inventing estimates', () => {

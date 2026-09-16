@@ -1,4 +1,10 @@
-# Kallisto GPU paper figures
+# Kallisto paper figures
+
+## Original kallisto paper
+
+`figure-0-kallisto.jpg` is Figure 1, “Overview of kallisto,” from Nicolas L. Bray, Harold Pimentel, Páll Melsted, and Lior Pachter, “Near-optimal probabilistic RNA-seq quantification,” *Nature Biotechnology* 34, 525–527 (2016), DOI: [10.1038/nbt.3519](https://doi.org/10.1038/nbt.3519). The local image is 675 × 771 pixels. © 2016 Springer Nature.
+
+## GPU kallisto paper
 
 These assets come from:
 

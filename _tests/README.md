@@ -38,13 +38,13 @@ channel. `KALLISTO_PREVIEW_URL` overrides `http://127.0.0.1:4000`. Screenshots a
 written to the operating system's temporary directory.
 
 The checks cover independent hand calculations, count conservation, likelihood
-factorization and monotonicity, nonidentifiability, bootstrap reproducibility,
+factorization and monotonicity, nonidentifiability,
 invalid and empty input, the full read-to-EM workflow, mobile overflow, keyboard
 operation, and isolation from the homepage. `_tests` is excluded from Jekyll output
 by Jekyll's normal underscore-directory handling.
 
 Browser checks also verify display and inline math, absence of parse errors, local
 math assets, accessible MathML, and keyboard scrolling for wide mobile equations.
-The three original paper images are checked for successful loading at their
-recorded resolutions and links to the full-size assets. Their sources and reuse
-license are documented in `images/kallisto/README.md`.
+The four original paper images are checked for successful loading at their
+recorded resolutions and links to the full-size assets. Their source and rights
+information is documented in `images/kallisto/README.md`.

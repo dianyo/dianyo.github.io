@@ -251,48 +251,6 @@
     return rates.map(function (rate) { return 1e6 * rate / total; });
   }
 
-  // Seeded pseudorandom draws make the small teaching bootstrap reproducible.
-  function seededRandom(seed) {
-    var state = Number(seed) >>> 0;
-    return function () {
-      state = (state + 0x6D2B79F5) | 0;
-      var value = Math.imul(state ^ (state >>> 15), 1 | state);
-      value ^= value + Math.imul(value ^ (value >>> 7), 61 | value);
-      return ((value ^ (value >>> 14)) >>> 0) / 4294967296;
-    };
-  }
-
-  function bootstrapCounts(classes, rng) {
-    if (!Array.isArray(classes)) throw new Error("Provide an array of compatibility classes.");
-    if (classes.some(function (group) { return !Number.isSafeInteger(group.count) || group.count < 0; })) {
-      throw new Error("Bootstrap class counts must be nonnegative integers.");
-    }
-    rng = rng || Math.random;
-    if (typeof rng !== "function") throw new Error("Provide a random-number generator function.");
-    var result = classes.map(function (group) { return { members: group.members.slice(), count: 0 }; });
-    var total = observationCount(classes);
-    if (!Number.isSafeInteger(total)) throw new Error("The total bootstrap count must be a safe integer.");
-    var cumulative = [];
-    classes.reduce(function (sum, group) {
-      cumulative.push(sum + group.count);
-      return sum + group.count;
-    }, 0);
-    for (var i = 0; i < total; i += 1) {
-      var draw = rng();
-      if (!Number.isFinite(draw) || draw < 0 || draw >= 1) throw new Error("Random draws must be in [0, 1).");
-      var target = draw * total;
-      var low = 0;
-      var high = cumulative.length - 1;
-      while (low < high) {
-        var middle = (low + high) >>> 1;
-        if (target < cumulative[middle]) high = middle;
-        else low = middle + 1;
-      }
-      result[low].count += 1;
-    }
-    return result;
-  }
-
   return {
     TRANSCRIPTS: TRANSCRIPTS,
     kmers: kmers,
@@ -303,8 +261,6 @@
     expectation: expectation,
     emStep: emStep,
     fit: fit,
-    tpm: tpm,
-    bootstrapCounts: bootstrapCounts,
-    seededRandom: seededRandom
+    tpm: tpm
   };
 });

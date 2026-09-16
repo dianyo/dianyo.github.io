@@ -1,17 +1,18 @@
 <section class="k-lab" id="class-lab" aria-labelledby="class-lab-title">
   <p class="k-eyebrow">Experiment 2 · Compatibility → counts</p>
   <h3 id="class-lab-title">Build your own little RNA-seq sample</h3>
-  <p class="k-help">Each row represents repeated observations of one read sequence. Change the counts, remove a read, or add the read from experiment 1. Changing k above reprocesses this sample.</p>
-  <div class="k-buttons">
-    <button type="button" id="k-add-read">Add current read × 10</button>
+  <p class="k-help">Each row represents repeated observations of one read sequence. Choose k here and edit the Copies fields directly; set a count to 0 to remove that sequence's evidence.</p>
+  <div class="k-controls">
+    <label for="k-class-size">k = <output id="k-class-size-value">3</output>
+      <input id="k-class-size" type="range" min="2" max="7" step="1" value="3">
+    </label>
     <button type="button" id="k-reset-reads">Restore sample</button>
-    <button type="button" id="k-clear-reads">Clear sample</button>
   </div>
   <p id="k-sample-message" class="k-help" role="status"></p>
   <div class="k-table-scroll" tabindex="0" role="region" aria-label="Read compatibility matrix">
     <table>
-      <caption>Compatibility matrix, with repeated rows counted together</caption>
-      <thead><tr><th scope="col">Read</th><th scope="col">Copies</th><th scope="col">T1</th><th scope="col">T2</th><th scope="col">T3</th><th scope="col"><span class="k-sr-only">Remove read</span></th></tr></thead>
+      <caption>Compatibility matrix. A colored 1 means compatible; 0 means not compatible.</caption>
+      <thead><tr><th scope="col">Read</th><th scope="col">Copies</th><th scope="col">T1</th><th scope="col">T2</th><th scope="col">T3</th></tr></thead>
       <tbody id="k-read-matrix"></tbody>
     </table>
   </div>
