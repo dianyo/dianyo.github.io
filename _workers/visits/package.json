@@ -1,0 +1,16 @@
+{
+  "name": "dianyo-visitor-counts",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "dev": "wrangler dev --env local",
+    "build": "wrangler deploy --env='' --dry-run --outdir dist",
+    "test": "npm run build && node --test test/*.test.js",
+    "deploy": "wrangler deploy --env=''"
+  },
+  "devDependencies": {
+    "miniflare": "5.20260915.0-alpha",
+    "playwright": "1.63.0",
+    "wrangler": "4.132.0"
+  }
+}

@@ -1,0 +1,18 @@
+{% if site.visitor_stats and page.url != '/404.html' %}
+<div class="visitor-stats" data-visitor-stats
+     data-origin="{{ site.visitor_stats.origin | escape }}"
+     data-endpoint="{{ site.visitor_stats.endpoint | escape }}"
+     data-path="{{ site.baseurl | append: page.url | escape }}"
+     data-map-script="{{ site.visitor_stats.map_script_url | escape }}"
+     data-allow-local="{{ site.visitor_stats.allow_local }}">
+  <p class="site-views" data-site-views-label hidden aria-live="polite">
+    Site visits: <span data-site-views></span>
+  </p>
+  <section class="visitor-map" data-visitor-map hidden aria-label="Visitor locations">
+    <h2>Visitors around the world</h2>
+    <div class="visitor-map-embed" data-map-embed></div>
+    <p class="visitor-map-status" data-map-status role="status">Loading visitor map…</p>
+  </section>
+</div>
+<script defer src="{{ site.baseurl }}/assets/visitor-stats.js?v={{ site.time | date: '%s' }}"></script>
+{% endif %}

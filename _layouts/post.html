@@ -5,6 +5,12 @@ layout: default
 <article class="post">
   <h1>{{ page.title }}</h1>
 
+  {% if site.visitor_stats.endpoint != empty and site.visitor_stats.endpoint %}
+  <p class="article-views" data-article-views hidden aria-live="polite">
+    Visits: <span data-page-views></span>
+  </p>
+  {% endif %}
+
   <div class="entry">
     {{ content }}
   </div>

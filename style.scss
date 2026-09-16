@@ -283,6 +283,48 @@ footer {
   text-align: center;
 }
 
+.article-views,
+.site-views {
+  color: $gray;
+  font-size: 14px;
+  font-variant-numeric: tabular-nums;
+}
+
+.article-views {
+  margin: -5px 0 20px;
+}
+
+.site-views {
+  margin: 12px 0;
+}
+
+.visitor-map {
+  max-width: 360px;
+  margin: 20px auto 0;
+
+  h2 {
+    margin: 0 0 10px;
+    color: $gray;
+    font-size: 14px;
+    font-weight: normal;
+  }
+}
+
+// The theme's HTML5 reset sets section { display: block }.
+.visitor-map[hidden] {
+  display: none;
+}
+
+.visitor-map-embed {
+  width: 100%;
+  overflow: hidden;
+}
+
+.visitor-map-status {
+  color: $gray;
+  font-size: 14px;
+}
+
 // Settled on moving the import of syntax highlighting to the bottom of the CSS
 // ... Otherwise it really bloats up the top of the CSS file and makes it difficult to find the start
 @import "highlights";
