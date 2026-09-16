@@ -1,0 +1,33 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "dianyo-visitor-counts",
+  "main": "src/index.js",
+  "compatibility_date": "2026-09-16",
+  "workers_dev": true,
+  "preview_urls": false,
+  "vars": {
+    "ALLOWED_ORIGINS": "https://dianyo.github.io"
+  },
+  "durable_objects": {
+    "bindings": [{ "name": "COUNTERS", "class_name": "VisitCounter" }]
+  },
+  "migrations": [{ "tag": "v1", "new_sqlite_classes": ["VisitCounter"] }],
+  "ratelimits": [{
+    "name": "VISIT_LIMITER",
+    "namespace_id": "1001",
+    "simple": { "limit": 120, "period": 60 }
+  }],
+  "env": {
+    "local": {
+      "vars": { "ALLOWED_ORIGINS": "http://127.0.0.1:4000,http://localhost:4000" },
+      "durable_objects": {
+        "bindings": [{ "name": "COUNTERS", "class_name": "VisitCounter" }]
+      },
+      "ratelimits": [{
+        "name": "VISIT_LIMITER",
+        "namespace_id": "1002",
+        "simple": { "limit": 120, "period": 60 }
+      }]
+    }
+  }
+}

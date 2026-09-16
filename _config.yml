@@ -39,6 +39,14 @@ disqus:
 # Enter your Google Analytics web tracking code (e.g. UA-2110908-2) to activate tracking
 google_analytics:
 
+# Live counters and visitor map. See _workers/visits/README.md for setup.
+# Leave either URL empty to disable that integration.
+visitor_stats:
+  origin: "https://dianyo.github.io"
+  endpoint: "https://dianyo-visitor-counts.dianyo-visitor-counts.workers.dev"
+  map_script_url: "https://mapmyvisitors.com/map.js?d=Q42jl5SLxXZzG4B3VEHOMQSr2BvKMMW1hcmNCsHdnFs&cl=ffffff&w=a"
+  allow_local: false # Only enable in a separate local preview configuration
+
 # Your website URL (e.g. http://barryclark.github.io or http://www.barryclark.co)
 # Used for Sitemap.xml and your RSS feed
 url: 

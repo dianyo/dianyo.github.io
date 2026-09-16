@@ -8,3 +8,8 @@ Gemfile
 Gemfile.lock
 node_modules
 package.json
+!/_workers/visits/package.json
+.wrangler/
+.dev.vars*
+.env*
+/_workers/visits/dist/
