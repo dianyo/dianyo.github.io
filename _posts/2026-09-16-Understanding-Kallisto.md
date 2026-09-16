@@ -2,17 +2,17 @@
 layout: post
 title: "Understanding kallisto: an interactive guide from reads to abundance"
 permalink: /understanding-kallisto/
-excerpt: "Change a RNA-seq read, follow its k-mers, and watch EM estimate transcript abundance by kallisto. Explore how kallisto works, what its estimates mean, and what GPUs can make faster."
+excerpt: "Change an RNA-seq read, follow its k-mers, and watch kallisto estimate transcript abundance. Explore how kallisto works, what its estimates mean, and what GPUs can make faster."
 ---
 
-RNA sequencing produces millions of short sequences called **reads**. The challenge is to work backward from those reads to find out which RNA transcripts produced them, and how abundant was each transcript? Many transcripts share sequence, so a read often has several possible origins.
+RNA sequencing produces millions of short sequences called **reads**. The challenge is to work backward from those reads and answer two questions: Which RNA transcripts produced them, and how abundant was each transcript? Many transcripts share sequence, so a read often has several possible origins.
 
 <link rel="stylesheet" href="{{ site.baseurl }}/assets/kallisto/vendor/katex-0.18.7/katex.min.css">
 <link rel="stylesheet" href="{{ site.baseurl }}/assets/kallisto/article.css">
 
-**Kallisto estimates the abundance of each reference transcript from the collective evidence in RNA-seq reads. Using its transcriptome index, it pseudoaligns each fragment first: it determines which transcripts are compatible with the fragment without computing exact alignment coordinates. Kallisto then groups fragments with the same compatibility set into equivalence classes and uses Expectation-Maximum (EM) algorithm to estimate transcript abundances jointly across the sample.**
+**kallisto estimates the abundance of each reference transcript from the collective evidence in RNA-seq reads. Using its transcriptome index, it first pseudoaligns each fragment: it determines which transcripts are compatible with the fragment without computing exact alignment coordinates. kallisto then groups fragments with the same compatibility set into equivalence classes and uses the expectation-maximization (EM) algorithm to estimate transcript abundances jointly across the sample.**
 
-The examples below let you follow that process. You can change a sequence to see its candidates change, adjust the number of reads to change the evidence, and step through the abundance calculation. After that we'll explore what GPUs can accelerate, and why faster hardware might make it worth revisiting more detailed but slower alignment methods (Like Bowtie2 + RSEM).
+The examples below let you follow that process. You can change a sequence to see its candidates change, adjust the number of reads to change the evidence, and step through the abundance calculation. After that, we will ask whether a neural network could learn the EM calculation, explore what GPUs can accelerate, and consider why faster hardware may justify revisiting more detailed alignment methods such as Bowtie 2 + RSEM.
 
 <div class="k-roadmap" aria-label="Article contents">
   <strong>Roadmap for this article</strong>
@@ -39,7 +39,7 @@ The examples below let you follow that process. You can change a sequence to see
     </li>
     <li><a href="#neural-network">Could a neural network replace EM?</a></li>
     <li><a href="#gpu">What changes on a GPU?</a></li>
-    <li><a href="#bowtie2-rsem">Research direction: revisit Bowtie2 + RSEM on GPUs</a></li>
+    <li><a href="#bowtie2-rsem">Research direction: revisit Bowtie 2 + RSEM on GPUs</a></li>
     <li><a href="#conclusion">Conclusion: two research directions</a></li>
     <li><a href="#references">References</a></li>
   </ol>
@@ -63,7 +63,7 @@ T3   GGTGACGTA
 
 The read `TGACGTA` occurs in both T1 and T3. An **alignment** describes where a read matches a reference, base by base, including mismatches or gaps. Even a perfect alignment of this read would leave two possible origins. Discarding it would waste evidence; counting it once for T1 and once for T3 would count the same observation twice.
 
-Instead of aligning the read to the reference transcripts directly, Kallisto first asks a smaller question: **which transcripts are compatible with this read?** Finding that candidate set is called **pseudoalignment**. A statistical model then uses the evidence across all reads to estimate each transcript's contribution. This separation is central to [Bray, Pimentel, Melsted, and Pachter’s original paper](https://www.nature.com/articles/nbt.3519).
+Instead of aligning the read to the reference transcripts directly, kallisto first asks a smaller question: **which transcripts are compatible with this read?** Finding that candidate set is called **pseudoalignment**. A statistical model then uses the evidence across all reads to estimate each transcript's contribution. This separation is central to [Bray, Pimentel, Melsted, and Pachter’s original paper](https://www.nature.com/articles/nbt.3519).
 
 <div class="k-flow" aria-label="Algorithm stages"><span>Read sequences</span><span>→ candidate sets</span><span>→ class counts</span><span>→ abundance</span></div>
 
@@ -89,7 +89,7 @@ A read of length <span class="k-math" markdown="0">\(L\)</span> has <span class=
 
 {% include kallisto/sequence-lab.html %}
 
-The operation we used above is called **set intersection**: keep only candidates that appear in every matching k-mer window's set, and <span class="k-math" markdown="0">\(C\)</span> is called **candidate set**:
+The operation above is a **set intersection**: retain only the transcripts that appear in every matching k-mer window's candidate set. Let <span class="k-math" markdown="0">\(C(\cdot)\)</span> denote a candidate set:
 
 <div class="k-equation">
 \[
@@ -103,25 +103,25 @@ C(\mathtt{TGACGTA})
 \]
 </div>
 
-The final answer <span class="k-math" markdown="0">\(\{T_1,T_3\}\)</span> means either transcript could be the origin. It does not yet assign a probability to either one. Also notice that the five windows still represent **one read**. They help determine its candidates only, **they do not become five separate observations in the abundance calculation**.
+The final answer <span class="k-math" markdown="0">\(\{T_1,T_3\}\)</span> means either transcript could be the origin. It does not yet assign a probability to either one. Also notice that the five windows still represent **one read**. They help determine its candidates; **they do not become five separate observations in the abundance calculation**.
 
 ### What changing k teaches us
 
 Small k-mers occur more readily by chance. Longer k-mers can distinguish sequences better, but give a short read fewer windows. A single changed base also affects every window that overlaps it.
 
 <aside class="k-try" aria-label="Try it" markdown="1">
-**Try it:** In the above <a href="#sequence-lab">interactive interface </a> select **One substitution** at k = 3. A substitution replaces one base with another. Some windows now fail to match, while unaffected windows can still identify a candidate. Increase k and watch how many matching windows remain. Then select **No matches** to see what happens when none of the windows supplies evidence.
+**Try it:** in the <a href="#sequence-lab">interactive experiment above</a>, select **One substitution** at k = 3. A substitution replaces one base with another. Some windows now fail to match, while unaffected windows can still identify a candidate. Increase k and watch how many matching windows remain. Then select **No matches** to see what happens when none of the windows supplies evidence.
 </aside>
 
-An **absent k-mer is skipped (instead of intersecting with a null set)** in this intersection procedure. If none of the windows matches in the end, the read is **unassigned**. A read is also unassigned when its matching windows point to incompatible sets with no transcript in common. A changed base can sometimes create a match elsewhere in the reference, so surviving matches are evidence rather than a guarantee of the true origin.
+An **absent k-mer is skipped rather than treated as an empty candidate set** in this intersection procedure. If none of the windows matches, the read is **unassigned**. A read is also unassigned when its matching windows point to incompatible sets with no transcript in common. A changed base can sometimes create a match elsewhere in the reference, so surviving matches are evidence rather than a guarantee of the true origin.
 
-For these short examples, k ranges from 2 to 7 and sequences are compared in their written orientation. Real RNA-seq requires attention to read orientation and paired ends. Kallisto's documented index default is k = 31, with an odd-k requirement; those settings are described in the [kallisto manual](https://pachterlab.github.io/kallisto/manual).
+For these short examples, k ranges from 2 to 7 and sequences are compared in their written orientation. Real RNA-seq requires attention to read orientation and paired ends. kallisto's documented index default is k = 31, with an odd-k requirement; those settings are described in the [kallisto manual](https://pachterlab.github.io/kallisto/manual).
 
 ### Where the graph fits
 
 Notice that several consecutive windows can have identical candidate sets. Once <span class="k-math" markdown="0">\(\{T_1,T_3\}\)</span> is the running answer, intersecting it with <span class="k-math" markdown="0">\(\{T_1,T_3\}\)</span> again changes nothing. **Avoiding redundant work is one source of kallisto's speed.**
 
-The original index organizes k-mers into a **transcriptome de Bruijn graph (T-DBG)**. K-mers are nodes, neighboring sequence windows connect them, and transcript membership supplies their “colors.” Each transcript follows a path through the graph. Linear stretches with unchanged membership can be compacted into **contigs**, which may cover only part of a transcript. Kallisto uses this structure to skip redundant lookups and checks the end of a skip.
+The original index organizes k-mers into a **transcriptome de Bruijn graph (T-DBG)**. K-mers are nodes, neighboring sequence windows connect them, and transcript membership supplies their “colors.” Each transcript follows a path through the graph. Linear stretches with unchanged membership can be compacted into **contigs**, which may cover only part of a transcript. kallisto uses this structure to skip redundant lookups and checks the end of a skip.
 
 <figure class="k-paper-figure k-paper-graph" id="kallisto-graph-overview">
   <a href="{{ site.baseurl }}/images/kallisto/figure-0-kallisto.jpg" aria-label="Open the original kallisto graph overview at full size">
@@ -130,13 +130,13 @@ The original index organizes k-mers into a **transcriptome de Bruijn graph (T-DB
   <figcaption>Figure 1, “Overview of kallisto,” from <a href="https://doi.org/10.1038/nbt.3519">Bray, Pimentel, Melsted, and Pachter (2016)</a>. © 2016 Springer Nature. Select the image to enlarge it.</figcaption>
 </figure>
 
-We can understand the contigs concept from the above figure. In panel **b**, each circle is a k-mer and each colored line is a transcript path. Consecutive circles along a nonbranching stretch can be stored as one contig when they carry the same set of transcript colors. In panel **d**, the dotted arrows show kallisto jumping over k-mers whose candidate set would repeat the same information; the labeled nodes are the lookup and checking points. Panel **e** intersects the transcript sets from those informative points to obtain the read's compatibility set.
+The figure makes the role of contigs concrete. In panel **b**, each circle is a k-mer and each colored line is a transcript path. Consecutive circles along a nonbranching stretch can be stored as one contig when they carry the same set of transcript colors. In panel **d**, the dotted arrows show kallisto jumping over k-mers whose candidate set would repeat the same information; the labeled nodes mark lookup points and skip endpoints. Panel **e** intersects the transcript sets from those informative points to obtain the read's compatibility set.
 
-There is a limit to what the final candidate sets say. They do not retain the order and positions of every match. With very small k, a string can pass the intersection test even when it does not occur as one continuous sequence in a transcript. This is one reason the choice of k matters.
+The final candidate set has limits: it does not retain the order and positions of every match. With very small k, a string can pass the intersection test even when it does not occur as one continuous sequence in a transcript. This is one reason the choice of k matters.
 
 <h2 id="compatibility-classes">3. Compatibility classes: group reads with the same candidates</h2>
 
-After pseudoalignment, many reads have the same candidate set. Grouping them makes the next calculation smaller. Three terms describe the successive stages:
+After pseudoalignment, many reads have the same candidate set. Grouping them reduces the data passed to abundance estimation. Three terms describe the successive stages:
 
 - A **k-mer compatibility set** contains transcripts that contain that k-mer.
 - A **read or fragment compatibility set** contains candidates surviving the combined evidence.
@@ -166,11 +166,11 @@ Consider a compatibility matrix as a table with a row for each read and a column
 \]
 </div>
 
-The grouped version is <span class="k-math" markdown="0">\(\{T_1,T_2\}:3\)</span> and <span class="k-math" markdown="0">\(\{T_1\}:1\)</span>. It preserves how often each candidate set occurs, but not which row belonged to read A, B, C, or D. You cannot reconstruct the original labeled table from the counts alone.
+The grouped version is <span class="k-math" markdown="0">\(\{T_1,T_2\}:3\)</span> and <span class="k-math" markdown="0">\(\{T_1\}:1\)</span>. It preserves how often each candidate set occurs, but not the identities or order of the reads that produced those sets. You cannot reconstruct the original labeled table from the counts alone.
 
 For abundance estimation, however, those repeated rows ask the model exactly the same question. A **likelihood** measures how well a proposed mixture of transcripts explains the observed evidence. Each repeated row contributes the same factor to that likelihood, so multiplying it three times is equivalent to raising it to the third power.
 
-In symbols, let <span class="k-math" markdown="0">\(\alpha_t\)</span> be the probability that a sampled fragment comes from <span class="k-math" markdown="0">\(t\)</span>, and <span class="k-math" markdown="0">\(\ell_t\)</span> its effective length, explained next. Let <span class="k-math" markdown="0">\(e\)</span> denote a candidate set and <span class="k-math" markdown="0">\(c_e\)</span> its count. Here <span class="k-math" markdown="0">\(F\)</span> contains the assigned fragments and <span class="k-math" markdown="0">\(E\)</span> contains their equivalence classes. Kallisto's basic likelihood can be written as:
+In symbols, let <span class="k-math" markdown="0">\(\alpha_t\)</span> be the probability that a sampled fragment comes from <span class="k-math" markdown="0">\(t\)</span>, and <span class="k-math" markdown="0">\(\ell_t\)</span> its effective length, explained next. Let <span class="k-math" markdown="0">\(e\)</span> denote a candidate set and <span class="k-math" markdown="0">\(c_e\)</span> its count. Here <span class="k-math" markdown="0">\(F\)</span> contains the assigned fragments and <span class="k-math" markdown="0">\(E\)</span> contains their equivalence classes. kallisto's basic likelihood can be written as:
 
 <div class="k-equation">
 \[
@@ -186,7 +186,7 @@ g_e(\boldsymbol{\alpha})
 \]
 </div>
 
-For the four fragments above, three belong to the compatibility class <span class="k-math" markdown="0">\(\{T_1,T_2\}\)</span>, and one belongs to <span class="k-math" markdown="0">\(\{T_1\}\)</span>. Therefore, their equivalence-class counts are <span class="k-math" markdown="0">\(c_{\{T_1,T_2\}}=3\)</span> and <span class="k-math" markdown="0">\(c_{\{T_1\}}=1\)</span>. The read-level likelihood <span class="k-math" markdown="0">\(g_{12}g_{12}g_1g_{12}\)</span> can consequently be written as <span class="k-math" markdown="0">\(g_{12}^{3}g_1\)</span>. These **equivalence-class counts** are sufficient statistics for this likelihood: they retain everything needed to calculate it.
+For the four fragments above, three belong to the compatibility class <span class="k-math" markdown="0">\(\{T_1,T_2\}\)</span>, and one belongs to <span class="k-math" markdown="0">\(\{T_1\}\)</span>. Therefore, their equivalence-class counts are <span class="k-math" markdown="0">\(c_{\{T_1,T_2\}}=3\)</span> and <span class="k-math" markdown="0">\(c_{\{T_1\}}=1\)</span>. Writing <span class="k-math" markdown="0">\(g_{12}\)</span> as shorthand for <span class="k-math" markdown="0">\(g_{\{T_1,T_2\}}\)</span>, the fragment-level likelihood <span class="k-math" markdown="0">\(g_{12}g_{12}g_1g_{12}\)</span> becomes <span class="k-math" markdown="0">\(g_{12}^{3}g_1\)</span>. These **equivalence-class counts** are sufficient statistics for this likelihood: they retain everything needed to calculate it.
 
 <h2 id="effective-length">4. Why effective length appears</h2>
 
@@ -200,7 +200,7 @@ With equal fragment shares but effective lengths 100 and 200, a shared observati
 
 <h2 id="em">5. EM: distribute evidence, then update the estimate</h2>
 
-Suppose unique reads strongly support T1, but only weakly support T2. It would be surprising to divide all reads shared by T1 and T2 equally. Evidence from the whole sample should influence that division.
+Suppose the sample contains many fragments unique to T1 but only a few unique to T2. Dividing every fragment shared by T1 and T2 equally would ignore that imbalance. Evidence from the whole sample should influence the division.
 
 **Expectation-maximization (EM)** does this in two repeating steps. The **E-step** uses the current abundance estimate to divide ambiguous evidence. The **M-step** adds up those assignments and uses the totals as the next abundance estimate. The origin of each ambiguous fragment is the hidden information being estimated.
 
@@ -236,7 +236,7 @@ Take 100 observations unique to T1, 10 unique to T2, and 90 compatible with both
 The first E-step splits the ninety shared observations 45/45. Expected counts are <span class="k-math" markdown="0">\((145,55,0)\)</span>, so the M-step yields <span class="k-math" markdown="0">\((0.725,0.275,0)\)</span>. The next E-step allocates <span class="k-math" markdown="0">\(90\times0.725=65.25\)</span> to T1 and 24.75 to T2. Updating gives <span class="k-math" markdown="0">\((0.82625,0.17375,0)\)</span>.
 
 <aside class="k-try" aria-label="Try it" markdown="1">
-**Try it:** select **Worked example** and press **Animate E/M from start**. The E-step highlights while the class counts are divided, then the M-step highlights as the transcript shares and trajectory update. The animation shows the early cycles individually and accelerates through later checkpoints until convergence. To reproduce the arithmetic yourself, reset EM, press **E-step: split counts**, check the 45/45 split, and press **M-step: update α**. Repeat once to obtain <span class="k-math" markdown="0">\((0.82625,0.17375,0)\)</span>.
+**Try it:** select **Worked example** and press **Animate E/M from start**. The E-step highlights while the class counts are divided; the M-step then highlights while the transcript shares and trajectory are updated. The animation shows the early cycles individually and accelerates through later checkpoints until convergence. To reproduce the arithmetic yourself, reset EM, press **E-step: split counts**, check the 45/45 split, and press **M-step: update α**. Repeat once to obtain <span class="k-math" markdown="0">\((0.82625,0.17375,0)\)</span>.
 </aside>
 
 {% include kallisto/em-lab.html %}
@@ -249,9 +249,9 @@ Fractional assignments naturally give noninteger estimated counts. Once EM has f
 
 <div class="k-equation">
 \[
-\begin{aligned}
-r_t &= \frac{n_t}{\ell_t}, \mathrm{TPM}_t = 10^6\frac{r_t}{\sum_j r_j}.
-\end{aligned}
+r_t=\frac{n_t}{\ell_t},
+\qquad
+\mathrm{TPM}_t=10^6\frac{r_t}{\sum_j r_j}.
 \]
 </div>
 
@@ -267,7 +267,7 @@ Select **Unidentifiable**. Only <span class="k-math" markdown="0">\(\{T_1,T_2\}\
 
 This is a lack of **identifiability**: the evidence does not determine a unique answer. More reads from exactly the same shared class cannot resolve it; distinguishing reads or additional assumptions are needed. A stable optimizer is therefore only one part of interpreting an abundance estimate.
 
-Up to here, we've learned the total original Kallisto algorithm. More detail or advanced method can be found in their manual. In the following, we're going to discuss some interesting research questions I got inspired from it.
+The sections so far cover kallisto's core path from reads to abundance. The remaining sections use that foundation to ask how learned surrogates and modern GPUs might change the algorithm.
 
 <h2 id="neural-network">6. Could a neural network replace EM?</h2>
 
@@ -277,23 +277,23 @@ Transcript quantification suggests a related opportunity. After pseudoalignment 
 
 There is already research connecting neural networks and EM. [Neural Expectation Maximization](https://papers.neurips.cc/paper/7246-neural-expectation-maximization) constructs a differentiable EM-like procedure in which a neural network learns the statistical model used for perceptual grouping. [UNEM](https://openaccess.thecvf.com/content/CVPR2025/html/Zhou_UNEM_UNrolled_Generalized_EM_for_Transductive_Few-Shot_Learning_CVPR_2025_paper.html) takes another route: it unfolds the iterations of a generalized EM algorithm into network layers and learns iteration-specific parameters for few-shot classification. Neither paper studies RNA-seq, but both show that the repeated structure of EM can be exposed to learning.
 
-This raises a research question for transcript quantification: **can a neural network learn the EM computation that maps equivalence-class evidence to transcript abundance?**
+This raises a research question for transcript quantification: **can a neural network learn the EM computation that maps equivalence-class evidence to transcript abundances?**
 
 <h2 id="gpu">7. What changes on a GPU?</h2>
 
-Modern GPUs can run thousands of small operations at the same time, and their memory bandwidth has increased along with their computing power. Kallisto contains work that can be separated naturally: different fragments can look up k-mers independently, different candidate sets can be intersected independently, and different equivalence classes can contribute to an EM update in parallel.
+Modern GPUs can run thousands of small operations at the same time, and their memory bandwidth has increased along with their computing power. kallisto contains work that can be separated naturally: different fragments can look up k-mers independently, different candidate sets can be intersected independently, and different equivalence classes can contribute to an EM update in parallel.
 
-### An original kallisto author tries the GPU
+### A coauthor revisits kallisto on a GPU
 
-In the March 2026 preprint [RNA-seq analysis in seconds using GPUs](https://www.biorxiv.org/content/10.64898/2026.03.04.709526v1.full.pdf), **Páll Melsted**, an author of the original kallisto paper, Elís Mar Guðnýjarson, and Jóhannes Nordal redesign pseudoalignment, equivalence-class intersection, and EM for NVIDIA GPUs. Across 100 Geuvadis RNA-seq samples, they report about a 30× speedup when setup is excluded. A dataset containing 295 million paired-end reads falls from about 40 minutes with 16 CPU threads to 50 seconds on the GPU.
+In the March 2026 preprint [RNA-seq analysis in seconds using GPUs](https://www.biorxiv.org/content/10.64898/2026.03.04.709526v1.full.pdf), Páll Melsted, a coauthor of the original kallisto paper, joins Elís Mar Guðnýjarson and Jóhannes Nordal in redesigning pseudoalignment, equivalence-class intersection, and EM for NVIDIA GPUs. Across 100 Geuvadis RNA-seq samples, they report about a 30× speedup when setup is excluded. For a dataset containing 295 million paired-end reads, runtime falls from about 40 minutes with 16 CPU threads to 50 seconds on the GPU.
 
-The plot below is their result:
+Their benchmark results are reproduced below:
 
 <figure class="k-paper-figure k-paper-benchmark" id="gpu-benchmark">
   <a href="{{ site.baseurl }}/images/kallisto/figure-1-benchmark.jpg" aria-label="Open the original benchmark plot at full size">
     <img src="{{ site.baseurl }}/images/kallisto/figure-1-benchmark.jpg" width="1280" height="1251" loading="lazy" alt="Wall time versus sample read count for 100 Geuvadis samples. CPU kallisto times rise from about 100 to 380 seconds; GPU kallisto times remain below about 20 seconds across the plotted range.">
   </a>
-  <figcaption>Figure 1 from <a href="https://doi.org/10.64898/2026.03.04.709526">Melsted, Guðnýjarson, and Nordal (2026)</a></figcaption>
+  <figcaption>Figure 1 from <a href="https://doi.org/10.64898/2026.03.04.709526">Melsted, Guðnýjarson, and Nordal (2026)</a>.</figcaption>
 </figure>
 
 The benchmark used an RTX 5090 with 32 GB of GPU memory, a Ryzen 9 9900X, NVMe storage, and BGZF-compressed input. BGZF divides compressed data into independent blocks, allowing several blocks to be decompressed on the GPU at once; ordinary gzip remains serial and is decompressed on the CPU.
@@ -313,7 +313,7 @@ The intersections have different sizes, so their memory requirements are not kno
 
 EM uses a second layout: a transposed index records, for each transcript, every equivalence class containing it. During the E-step, the GPU first calculates the denominator for every class in parallel. It then uses the transposed index to sum class contributions for every transcript in parallel. The M-step normalizes those transcript totals, and the implementation checks convergence every ten iterations. This is the same E-step and M-step from Experiment 3, reorganized so that a single iteration can occupy the GPU.
 
-Detail implementation can be found in [kallisto GPU branch](https://github.com/pachterlab/kallisto/tree/gpu)
+Implementation details are available in the [kallisto GPU branch](https://github.com/pachterlab/kallisto/tree/gpu).
 
 ### What is the bottleneck now?
 
@@ -326,24 +326,26 @@ The paper reports a mapping rate of 24.1 million read pairs per second, but an e
   <figcaption>Table 1 from <a href="https://doi.org/10.64898/2026.03.04.709526">Melsted et al. (2026)</a>. The CPU and GPU columns report work within the GPU implementation, rather than two separate implementations.</figcaption>
 </figure>
 
-This result shifts the research question from “Can kallisto run on a GPU?” to **Should the saved computation be used to obtain richer evidence, rather than only to reduce runtime?** If pseudoalignment is no longer expensive, selected ambiguous fragments could receive additional alignment or sequence-error scoring before abundance estimation. This possibility leads directly to reconsidering Bowtie2 and RSEM below.
+This result shifts the research question from “Can kallisto run on a GPU?” to **Should the saved computation be used to obtain richer evidence, rather than only to reduce runtime?** If pseudoalignment is no longer expensive, selected ambiguous fragments could receive additional alignment or sequence-error scoring before abundance estimation. This possibility leads directly to reconsidering Bowtie 2 and RSEM below.
 
-<h2 id="bowtie2-rsem">8. Research direction: revisit Bowtie2 + RSEM on GPUs</h2>
+<h2 id="bowtie2-rsem">8. Research direction: revisit Bowtie 2 + RSEM on GPUs</h2>
 
-The GPU result suggests a broader question: **if pseudoalignment is now extremely fast, is discarding alignment detail still the best accuracy–runtime tradeoff?** Kallisto keeps candidate-transcript sets, whereas [Bowtie 2](https://pmc.ncbi.nlm.nih.gov/articles/PMC3322381/) preserves base-level alignment evidence and [RSEM](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-323) uses that evidence to estimate expression. Modern GPUs may make it practical to retain more information without returning to the runtimes that originally motivated pseudoalignment.
+The GPU result suggests a broader question: **if pseudoalignment is now extremely fast, is discarding alignment detail still the best accuracy–runtime tradeoff?** kallisto keeps candidate-transcript sets, whereas [Bowtie 2](https://pmc.ncbi.nlm.nih.gov/articles/PMC3322381/) preserves base-level alignment evidence and [RSEM](https://bmcbioinformatics.biomedcentral.com/articles/10.1186/1471-2105-12-323) uses that evidence to estimate expression. Modern GPUs may make it practical to retain more information without returning to the runtimes that originally motivated pseudoalignment.
 
-Bowtie2 + RSEM was a strong accuracy baseline in the original kallisto comparison, but that does not establish it as universally more accurate. Later work also shows that [mapping methodology affects abundance accuracy on real data](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02151-8). The research question is therefore whether richer alignment evidence improves transcript estimates enough to justify its remaining computational cost, particularly for rare and highly ambiguous isoforms.
+Bowtie 2 + RSEM was a strong accuracy baseline in the original kallisto comparison, but that does not establish it as universally more accurate. Later work also shows that [mapping methodology affects abundance accuracy on real data](https://genomebiology.biomedcentral.com/articles/10.1186/s13059-020-02151-8). The research question is therefore whether richer alignment evidence improves transcript estimates enough to justify its remaining computational cost, particularly for rare and highly ambiguous isoforms.
 
-A rough study would have three stages. First, accelerate Bowtie2-compatible alignment while preserving the paired-end relationships, alignment scores, and record formats that [RSEM requires](https://github.com/deweylab/RSEM#using-an-alternative-aligner). Second, parallelize RSEM's abundance estimation without changing its statistical model. Third, compare this pipeline with GPU kallisto on the same references and RNA-seq libraries, measuring end-to-end runtime, memory use, and gene- and transcript-level accuracy using both simulated truth and independent experimental evidence. The result would test whether modern hardware changes which information should be retained for transcript quantification.
+A rough study would have three stages. First, accelerate Bowtie 2–compatible alignment while preserving the paired-end relationships, alignment scores, and record formats that [RSEM requires](https://github.com/deweylab/RSEM#using-an-alternative-aligner). Second, parallelize RSEM's abundance estimation without changing its statistical model. Third, compare this pipeline with GPU kallisto on the same references and RNA-seq libraries, measuring end-to-end runtime, memory use, and gene- and transcript-level accuracy using both simulated truth and independent experimental evidence. The result would test whether modern hardware changes which information should be retained for transcript quantification.
 
 <h2 id="conclusion">9. Conclusion: two research directions</h2>
 
-Kallisto became fast by asking only which transcripts are compatible with each fragment, compressing repeated candidate sets into equivalence-class counts, and applying EM to estimate abundance. The experiments in this article expose both sides of that design: the compressed representation makes computation efficient, while ambiguous fragments and iterative abundance estimation remain imperfect.
+kallisto became fast by asking only which transcripts are compatible with each fragment, compressing repeated candidate sets into equivalence-class counts, and applying EM to estimate abundance. The experiments in this article expose both sides of that design: compression makes computation efficient, but shared fragments can remain unresolved, and EM still requires repeated updates.
 
 Two research directions follow from this tension:
 
 - **Learn the abundance calculation.** A neural surrogate could operate on the graph connecting equivalence classes and transcripts, learning several EM-like updates or directly approximating the converged abundance estimate. This direction asks whether the repeated computation can be learned while preserving the likelihood objective and correct behavior when the evidence is ambiguous.
-- **Retain richer evidence with GPU computing.** A GPU implementation of Bowtie2 + RSEM could preserve alignment locations, scores, mismatches, and paired-end constraints that pseudoalignment omits. This direction asks whether modern hardware can make a more detailed statistical model competitive in runtime and more informative for rare or ambiguous isoforms.
+- **Retain richer evidence with GPU computing.** A GPU implementation of Bowtie 2 + RSEM could preserve alignment locations, scores, mismatches, and paired-end constraints that pseudoalignment omits. This direction asks whether modern hardware can make a more detailed statistical model competitive in runtime and more informative for rare or ambiguous isoforms.
+
+These directions spend computation differently. One learns a faster solver after the evidence has been compressed; the other keeps richer evidence and accelerates the full pipeline. Testing both on the same data would show whether the next improvement comes from faster inference, better evidence, or both.
 
 <h2 id="references">10. References</h2>
 

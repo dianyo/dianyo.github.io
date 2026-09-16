@@ -1,11 +1,11 @@
 <section class="k-lab" id="em-lab" aria-labelledby="em-lab-title">
   <p class="k-eyebrow">Experiment 3 · Counts → abundance</p>
   <h3 id="em-lab-title">Be the EM algorithm</h3>
-  <label for="k-em-preset">Choose an experiment
+  <label for="k-em-preset">Choose a data set
     <select id="k-em-preset">
       <option value="worked">Worked example: 100 unique / 10 unique / 90 shared</option>
-      <option value="slow">Slow evidence: 1 unique / 999 shared</option>
-      <option value="ambiguous">Unidentifiable: only shared reads</option>
+      <option value="slow">Slow convergence: 1 unique / 999 shared</option>
+      <option value="ambiguous">Unidentifiable: only shared fragments</option>
       <option value="custom">My class counts</option>
     </select>
   </label>
@@ -45,5 +45,5 @@
     <p class="k-help">Each row sums to its class count. The M-step divides each column total by N to get the next α.</p>
   </div>
   <p id="k-em-likelihood" class="k-help"></p>
-  <p class="k-help">This experiment stops when the largest change in a transcript's fragment share is below <span class="k-math">\(10^{-8}\)</span>, with a limit of 2,000 updates per run. Kallisto uses its own convergence criteria.</p>
+  <p class="k-help">This experiment stops when the largest change in a transcript's fragment share is below <span class="k-math">\(10^{-8}\)</span>, with a limit of 2,000 updates per run. kallisto uses its own convergence criteria.</p>
 </section>
