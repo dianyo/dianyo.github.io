@@ -1,6 +1,6 @@
-# Site views, article views, and visitor map
+# Site visits, article visits, and visitor map
 
-The blog stays on Jekyll / GitHub Pages. A Cloudflare Worker records page views
+The blog stays on Jekyll / GitHub Pages. A Cloudflare Worker records daily visits
 in one SQLite-backed Durable Object. MapMyVisitors supplies the footer map using
 the public widget URL in `_config.yml`.
 
@@ -9,23 +9,32 @@ Deployed counter endpoint:
 
 ## What gets counted
 
-- One successful `POST /visit` per document load, including reloads. These are
-  page views, not unique people or homepage-link clicks.
-- Every tracked page contributes to the site total. Each article has its own
-  total keyed by Jekyll's canonical path, including `baseurl`. Query strings and
-  section anchors do not create additional article counters.
+- Each browser contributes at most one site visit per rolling 24 hours, across
+  all pages. Each article independently gets at most one visit from that browser
+  per rolling 24 hours. Refreshes, retries, and simultaneous tabs do not add more.
+  Returning before expiry does not extend the window. Totals remain cumulative.
+- A random browser ID is saved in localStorage. Cloudflare atomically checks the
+  ID's digest and expiry before updating totals. Clearing site storage, using a
+  private window, or switching browsers creates a new identity; these are browser
+  visits, not a count of unique people or homepage-link clicks.
+- Each article is keyed by Jekyll's canonical path, including `baseurl`. Query
+  strings and section anchors do not create additional article counters.
 - No historical visits are imported. Renaming an article's permalink creates a
   new counter for it.
 - The response includes the just-saved site and page totals with `Cache-Control:
   no-store`. An already-open page does not poll for other readers' later visits.
-- No JavaScript, blocked requests, or a failed service means no recorded view and
+- No JavaScript, blocked requests, or a failed service means no recorded visit and
   no displayed count. A failed counter does not interfere with the map or article.
+- If browser storage is blocked, counts are read without recording a visit.
+  Cached older scripts without a browser ID also only read totals.
 - The map tracks independently through MapMyVisitors. Its totals and update timing
-  can differ from Cloudflare's. Only the Cloudflare numeric counters bypass an
-  analytics provider's display cache.
-- Localhost, other preview origins, and the 404 page do not contact production
-  trackers. The optional local override only allows a loopback counter endpoint;
-  the MapMyVisitors script stays disabled locally.
+  can differ from Cloudflare's. We hide its separate pageview total and date with
+  the provider's `t=n` option, leaving the geographic map. The daily limit applies
+  to our Cloudflare numbers; MapMyVisitors controls its own tracking and updates.
+- Preview origins and the 404 page do not contact trackers by default. Explicit
+  local preview mode enables a loopback counter and the real MapMyVisitors widget.
+- Existing totals from the earlier pageview implementation are preserved; the
+  daily counting rule applies from this update onward.
 
 ## Cloudflare setup and deployment
 
@@ -49,8 +58,8 @@ Production accepts only `https://dianyo.github.io`, configured in both
 site moves to a custom domain. The public counter API is:
 
 ```text
-POST /visit                  JSON body: {"path":"/article/"}
-GET  /counts?path=/article/   Read without recording another view
+POST /visit                  JSON body: {"path":"/article/","visitorId":"<UUID v4>"}
+GET  /counts?path=/article/   Read without recording another visit
                              Response: {"siteViews":123,"pageViews":45}
 ```
 
@@ -62,9 +71,12 @@ The Worker applies a generous limit of 120 writes per minute per IP at each
 Cloudflare location. Shared networks share that allowance. This and the origin
 check reduce casual misuse; they cannot prove a request came from a human, and
 non-browser clients can forge origins. Do not treat the counters as audited
-analytics. The app stores only totals and paths, not IP addresses, cookies,
-visitor IDs, or location histories. Cloudflare uses the IP transiently as the
-rate-limit key; MapMyVisitors handles its own location data.
+analytics. The app stores totals, paths, and SHA-256 digests of random browser IDs
+with a 24-hour expiry per counter. Expired records are pruned on visits and by a
+scheduled Durable Object alarm. Raw IDs, IP addresses, cookies, and location
+histories are not stored in the counter database. The browser ID remains in
+localStorage until cleared. Cloudflare uses the IP transiently as the rate-limit
+key; MapMyVisitors handles its own location data.
 
 `ratelimits.namespace_id` must be unused by other rate-limit bindings in this
 Cloudflare account unless sharing limits is intentional. This project uses `1001`
@@ -97,6 +109,8 @@ To replace it, create a widget for the site's public URL at
 `visitor_stats.map_script_url`, using `https://` instead of `//`.
 The integration accepts the provider's `https://mapmyvisitors.com/map.js?...`
 format. An empty URL disables the map. A blank counter endpoint disables counters.
+The footer shows a loading message and, if the provider is blocked or fails to
+render within 12 seconds, an unavailable message instead of an empty heading.
 
 ## Local preview
 
@@ -120,13 +134,16 @@ jekyll serve --config _config.yml,/tmp/visitor-local.yml --host 127.0.0.1
 
 Wrangler stores local counts under `.wrangler`, which is ignored by Git. Local
 storage and the production Durable Object are separate. Do not use `--remote`
-for this preview.
+for this preview. With `allow_local: true`, the map loads from the real provider
+and may record preview traffic there. Without that opt-in, it remains hidden.
+The production counter is never used from a localhost preview.
 
 ## Verification
 
 `npm test` builds the Worker and exercises the actual local Cloudflare runtime:
-independent page counts, concurrent increments, immediate reads, origin and payload
-validation, rate limiting, and persistence across a runtime restart.
+daily limits, independent site/article expiry, concurrent refreshes and distinct
+browsers, expiry cleanup, immediate reads, origin and payload validation, rate
+limiting, and persistence of totals and deduplication across a runtime restart.
 
 The browser check uses that same runtime and intercepts MapMyVisitors requests
 with a fixture so automated tests never add map visits. From the repository root:
@@ -149,9 +166,11 @@ cd ../..
 PLAYWRIGHT_CHANNEL=chromium node _tests/visitor-stats-browser.cjs
 ```
 
-The browser checks verify article and site counters, canonical paths, duplicate
-script protection, mobile layout, preview isolation, 404 exclusion, and graceful
-failure when services are blocked. `VISITOR_SITE_DIR` overrides the build directory.
+The browser checks verify article and site counters, refreshes, simultaneous first
+tabs, blocked localStorage, canonical paths, duplicate script protection, mobile
+layout, preview isolation, the opted-in localhost map, 404 exclusion, and failures
+including a provider script that loads but never renders. `VISITOR_SITE_DIR`
+overrides the build directory.
 All worker sources, dependencies, and tests remain outside Jekyll output because
 their directories begin with underscores.
 
