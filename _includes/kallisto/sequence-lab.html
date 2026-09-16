@@ -1,0 +1,38 @@
+<section class="k-lab" id="sequence-lab" aria-labelledby="sequence-lab-title">
+  <p class="k-eyebrow">Experiment 1 · Sequence → compatibility</p>
+  <h3 id="sequence-lab-title">Follow a read, one k-mer at a time</h3>
+  <p class="k-help">Change k or edit the read. Click a k-mer to see its matches and the intersection so far.</p>
+  <div class="k-controls">
+    <label class="k-grow" for="k-read">Read sequence
+      <input id="k-read" type="text" value="TGACGTA" maxlength="60" spellcheck="false" autocapitalize="characters" autocomplete="off" aria-describedby="k-read-help">
+    </label>
+    <label for="k-size">k = <output id="k-size-value">3</output>
+      <input id="k-size" type="range" min="2" max="7" step="1" value="3">
+    </label>
+  </div>
+  <p id="k-read-help" class="k-help">Enter 2–60 A/C/G/T bases; spaces are ignored. Sequences are compared in the orientation shown.</p>
+  <div class="k-buttons k-example-reads" aria-label="Example reads">
+    <button type="button" data-read="TGACGTA" aria-pressed="true"><strong>Shared read</strong><span>Occurs in T1 and T3</span></button>
+    <button type="button" data-read="ACTGACG" aria-pressed="false"><strong>Unique read</strong><span>Occurs only in T1</span></button>
+    <button type="button" data-read="ACTGTCGT" aria-pressed="false"><strong>One substitution</strong><span>One base differs from a T1 segment</span></button>
+    <button type="button" data-read="AAAAAAA" aria-pressed="false"><strong>No matches</strong><span>No k-mer occurs in the index</span></button>
+  </div>
+  <p id="k-example-description" class="k-example-description k-help" aria-live="polite"></p>
+  <div id="k-read-window" class="k-sequence" aria-label="Read with the current k-mer highlighted"></div>
+  <div id="k-kmers" class="k-kmers" aria-label="Read k-mers"></div>
+  <div class="k-buttons">
+    <button type="button" id="k-prev">← Previous</button>
+    <button type="button" id="k-next">Next k-mer →</button>
+    <span id="k-step-label" class="k-help"></span>
+  </div>
+  <div id="k-transcripts" class="k-transcripts"></div>
+  <div id="k-intersection" class="k-result" role="status" aria-live="polite"></div>
+  <div id="k-read-result" class="k-help"></div>
+  <details>
+    <summary>Inspect the complete k-mer index</summary>
+    <p class="k-help" id="k-index-summary"></p>
+    <div class="k-table-scroll" tabindex="0" role="region" aria-label="K-mer index table">
+      <table><thead><tr><th scope="col">k-mer</th><th scope="col">Transcript set C(k-mer)</th></tr></thead><tbody id="k-index"></tbody></table>
+    </div>
+  </details>
+</section>

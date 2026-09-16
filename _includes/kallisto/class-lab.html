@@ -1,0 +1,23 @@
+<section class="k-lab" id="class-lab" aria-labelledby="class-lab-title">
+  <p class="k-eyebrow">Experiment 2 · Compatibility → counts</p>
+  <h3 id="class-lab-title">Build your own little RNA-seq sample</h3>
+  <p class="k-help">Each row represents one read sequence observed multiple times. Choose k here and edit the number of copies directly; set the number to 0 to remove that sequence's evidence.</p>
+  <div class="k-controls">
+    <label for="k-class-size">k = <output id="k-class-size-value">3</output>
+      <input id="k-class-size" type="range" min="2" max="7" step="1" value="3">
+    </label>
+    <button type="button" id="k-reset-reads">Restore sample</button>
+  </div>
+  <p id="k-sample-message" class="k-help" role="status"></p>
+  <div class="k-table-scroll" tabindex="0" role="region" aria-label="Read compatibility matrix">
+    <table>
+      <caption>Compatibility matrix. A colored 1 means compatible; 0 means not compatible.</caption>
+      <thead><tr><th scope="col">Read</th><th scope="col">Copies</th><th scope="col">T1</th><th scope="col">T2</th><th scope="col">T3</th></tr></thead>
+      <tbody id="k-read-matrix"></tbody>
+    </table>
+  </div>
+  <p id="k-sample-totals" class="k-result" role="status" aria-live="polite"></p>
+  <div id="k-classes" class="k-class-list"></div>
+  <button type="button" id="k-use-sample" class="k-primary">Use these class counts in EM ↓</button>
+  <p class="k-help">Only assigned reads enter the likelihood. The button copies your current counts and resets EM with equal effective lengths. Later edits to this sample take effect in EM when you press it again.</p>
+</section>
